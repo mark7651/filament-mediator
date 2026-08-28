@@ -14,6 +14,7 @@ use Livewire\WithFileUploads;
 use Mediator\Mediator;
 use Mediator\Models\Media;
 use Mediator\Uploads\Upload;
+use Mediator\Uses\Places;
 
 /**
  * The library as one wall of files with a panel of details beside it.
@@ -44,6 +45,12 @@ class MediaLibrary extends Component
      * One of image, video, audio, document, or nothing for the whole library.
      */
     public ?string $type = null;
+
+    /**
+     * Whether the wall is narrowed to the files no record of the site stands
+     * on, which are the files that can be swept out without breaking a page.
+     */
+    public bool $unused = false;
 
     public int $shown = self::STEP;
 
@@ -106,6 +113,11 @@ class MediaLibrary extends Component
     }
 
     public function updatedType(): void
+    {
+        $this->reopen();
+    }
+
+    public function updatedUnused(): void
     {
         $this->reopen();
     }
@@ -389,6 +401,10 @@ class MediaLibrary extends Component
             // stands for the whole library carries an empty value, and Livewire
             // hands that over as it is.
             ->when(filled($this->type), fn (Builder $query): Builder => $this->ofType($query))
+            // Asked of the register only where the wall is narrowed to them:
+            // the answer costs a query per registered place, and a wall that
+            // is not being tidied has no use for it.
+            ->when($this->unused, fn (Builder $query): Builder => $query->whereNotIn('id', app(Places::class)->standingAnywhere()))
             ->orderByDesc('id');
     }
 

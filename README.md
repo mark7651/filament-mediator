@@ -114,6 +114,23 @@ app(Places::class)->counted(
 );
 ```
 
+The library is tidied by deleting, and deleting is safe only where nothing stands on the file, so the
+wall has a button that leaves in it the files no record stands on. That question is put about the
+whole library at once and is answered by the places rather than by the files: a place with a column
+of its own answers it by itself, and a place written down with `counted()` answers it where the
+project hands over the numbers of the files standing in it.
+
+```php
+app(Places::class)->counted(
+    fn (Media $file): int => Page::standingIn($file)->count(),
+    fn (Media $file): Collection => Page::standingIn($file)->get(),
+    anywhere: fn (): array => Page::everyFileStandingInOne(),
+);
+```
+
+A place that says nothing here is left out of that answer, and the files standing in it are counted
+among nobody's. The register knows what the project told it and nothing else.
+
 The register is a singleton and is filled from the `boot()` of a provider of the project.
 
 ## A model of your own

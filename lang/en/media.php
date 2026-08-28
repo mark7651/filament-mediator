@@ -6,6 +6,7 @@ return [
     'plural_title' => 'Media library',
     'empty' => 'The library is empty. Drag the first file here.',
     'search' => 'Search by name or description',
+    'unused' => 'Standing nowhere',
     'drop' => 'Drop the files to upload them',
     'uploading' => 'Uploading',
     'more' => 'Show :count more',

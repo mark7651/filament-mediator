@@ -7,6 +7,7 @@ use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection as SupportCollection;
 use Mediator\Models\Media;
 
 /**
@@ -41,6 +42,16 @@ class Places
     private array $finders = [];
 
     /**
+     * The same places again, asked which files of the library they hold, all
+     * of them at once. Asked of the place rather than of the file because the
+     * question is put about the whole library: a wall narrowed to the files
+     * nobody stands on would otherwise cost a count per file per place.
+     *
+     * @var list<Closure(): iterable<int, int|string>>
+     */
+    private array $holders = [];
+
+    /**
      * A record that holds a file in a column of its own.
      *
      * A record with two columns for files is registered twice, once per
@@ -63,6 +74,16 @@ class Places
 
         $this->finders[] = fn (Media $file): Collection => $records($file)->get();
 
+        $this->holders[] = function () use ($model, $column, $withTrashed): SupportCollection {
+            $held = $model::query()->whereNotNull($column)->distinct();
+
+            if ($withTrashed) {
+                $held->withTrashed();
+            }
+
+            return $held->pluck($column);
+        };
+
         return $this->counted(fn (Media $file): int => $records($file)->count());
     }
 
@@ -75,15 +96,24 @@ class Places
      * project hands over the records as well: pages holding a file inside
      * their json can be named, and then the library names them.
      *
+     * A place says which files stand in it only if the project tells it how,
+     * and one that says nothing is one the library leaves out of that answer
+     * rather than guesses at.
+     *
      * @param  Closure(Media): int  $count
      * @param  Closure(Media): iterable<int, Model>|null  $records
+     * @param  Closure(): iterable<int, int|string>|null  $anywhere
      */
-    public function counted(Closure $count, ?Closure $records = null): static
+    public function counted(Closure $count, ?Closure $records = null, ?Closure $anywhere = null): static
     {
         $this->counters[] = $count;
 
         if ($records !== null) {
             $this->finders[] = $records;
+        }
+
+        if ($anywhere !== null) {
+            $this->holders[] = $anywhere;
         }
 
         return $this;
@@ -98,6 +128,33 @@ class Places
             fn (Closure $count): int => $count($file),
             $this->counters,
         ));
+    }
+
+    /**
+     * The numbers of every file of the library standing in at least one place.
+     *
+     * The library is tidied by deleting, and deleting is safe only where
+     * nothing stands on the file. That question is asked of the whole wall at
+     * once, so it is answered by the places: each names the files it holds,
+     * and what is left over is nobody's.
+     *
+     * A place that cannot name the files it holds is left out of the answer,
+     * and its files are counted among nobody's. The register knows what the
+     * project told it, and nothing else.
+     *
+     * @return list<int>
+     */
+    public function standingAnywhere(): array
+    {
+        $held = [];
+
+        foreach ($this->holders as $holds) {
+            foreach ($holds() as $file) {
+                $held[] = (int) $file;
+            }
+        }
+
+        return array_values(array_unique($held));
     }
 
     /**

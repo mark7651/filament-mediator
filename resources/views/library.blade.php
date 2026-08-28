@@ -114,6 +114,16 @@
                     @endforeach
                 </x-filament::input.select>
             </x-filament::input.wrapper>
+
+            {{-- The kind of a file and the places it stands in are two axes, so
+                 they stand apart: nobody's videos is a question worth asking. --}}
+            <x-filament::button
+                :color="$unused ? 'primary' : 'gray'"
+                :icon="$unused ? 'heroicon-m-check' : 'heroicon-m-funnel'"
+                wire:click="$toggle('unused')"
+            >
+                {{ __('mediator::media.unused') }}
+            </x-filament::button>
         @endif
 
         <div class="media__deeds">
@@ -151,7 +161,7 @@
                 x-ref="wall"
                 x-bind:class="dragging && 'media__wall--dragging'"
                 wire:loading.class="media__wall--busy"
-                wire:target="search, type"
+                wire:target="search, type, unused"
             >
                 @forelse ($wall as $file)
                     @include('mediator::card', ['file' => $file, 'deed' => $deed, 'open' => $openId === $file->id, 'ticked' => in_array($file->id, $chosen, true)])

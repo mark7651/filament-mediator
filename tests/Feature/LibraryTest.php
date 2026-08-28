@@ -517,3 +517,42 @@ it('ticks a file uploaded while several are being gathered rather than handing i
         ->assertNotDispatched('media-chosen')
         ->assertSet('chosen', [(int) Media::query()->sole()->id]);
 });
+
+it('leaves in the wall only the files nobody stands on', function () {
+    $standing = libraryFile('obkladynka');
+    $nobodys = libraryFile('zabuta');
+
+    app(Places::class)->counted(
+        fn (Media $file): int => (int) ($file->id === $standing->id),
+        anywhere: fn (): array => [$standing->id],
+    );
+
+    livewire(MediaLibrary::class)
+        ->set('unused', true)
+        ->assertSee($nobodys->name)
+        ->assertDontSee($standing->name)
+        ->set('unused', false)
+        ->assertSee($standing->name)
+        ->assertSee($nobodys->name);
+});
+
+it('keeps the wall on the files nobody stands on while the search and the type of it change', function () {
+    $standing = libraryFile('dohovir', type: 'application/pdf', ext: 'pdf');
+    $nobodys = libraryFile('zvit', type: 'application/pdf', ext: 'pdf');
+    $picture = libraryFile('obkladynka');
+
+    app(Places::class)->counted(
+        fn (Media $file): int => (int) ($file->id === $standing->id),
+        anywhere: fn (): array => [$standing->id],
+    );
+
+    livewire(MediaLibrary::class)
+        ->set('unused', true)
+        ->set('type', 'document')
+        ->assertSee($nobodys->name)
+        ->assertDontSee($standing->name)
+        ->assertDontSee($picture->name)
+        ->set('search', 'zvit')
+        ->assertSee($nobodys->name)
+        ->assertSet('unused', true);
+});

@@ -129,3 +129,42 @@ it('says in the panel of details what the file stands in and how much of it it c
         ->assertSee('Сімейне право')
         ->assertSee(trans_choice('mediator::media.elsewhere', 1, ['count' => 1]));
 });
+
+it('says which files of the library stand somewhere, asked of the places and not of the files', function () {
+    $standing = oneFile();
+    $nobodys = oneFile();
+
+    Article::query()->create(['cover_id' => $standing->id]);
+    Article::query()->create(['icon_id' => $standing->id]);
+    Article::query()->create(['cover_id' => null]);
+
+    $places = (new Places)
+        ->standsIn(Article::class, 'cover_id')
+        ->standsIn(Article::class, 'icon_id');
+
+    expect($places->standingAnywhere())->toBe([$standing->id])
+        ->and($places->standingAnywhere())->not->toContain($nobodys->id);
+});
+
+it('holds the file of a thrown away record only where the place counts the thrown away', function () {
+    $file = oneFile();
+
+    Article::query()->create(['cover_id' => $file->id])->delete();
+
+    expect((new Places)->standsIn(Article::class, 'cover_id')->standingAnywhere())->toBe([])
+        ->and((new Places)->standsIn(Article::class, 'cover_id', withTrashed: true)->standingAnywhere())->toBe([$file->id]);
+});
+
+it('says nothing of a place of its own until the project hands over the files standing in it', function () {
+    $file = oneFile();
+
+    Article::query()->create(['body' => 'a picture number '.$file->id.' stands here']);
+
+    $counting = fn (Media $one): int => Article::query()
+        ->where('body', 'like', '%number '.$one->getKey().' %')
+        ->count();
+
+    expect((new Places)->counted($counting)->standingAnywhere())->toBe([])
+        ->and((new Places)->counted($counting, anywhere: fn (): array => [$file->id])->standingAnywhere())
+        ->toBe([$file->id]);
+});
