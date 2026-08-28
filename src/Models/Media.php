@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Mediator\Glide\Thumbnails;
 use Mediator\Observers\MediaObserver;
+use Mediator\Uses\Places;
 use Throwable;
 
 /**
@@ -46,6 +47,12 @@ use Throwable;
 #[ObservedBy(MediaObserver::class)]
 class Media extends Model
 {
+    /**
+     * The number of records this file stands in, kept for the several places
+     * one card of the library asks for it.
+     */
+    private ?int $usedBy = null;
+
     /**
      * @var list<string>
      */
@@ -93,6 +100,18 @@ class Media extends Model
             'exif' => 'array',
             'curations' => 'array',
         ];
+    }
+
+    /**
+     * How many records this file stands in, of every kind at once.
+     *
+     * The places are the ones the project wrote down in the register, and a
+     * project that wrote down none of them counts none: the library warns with
+     * what it was told, never with a guess.
+     */
+    public function usedBy(): int
+    {
+        return $this->usedBy ??= app(Places::class)->standing($this);
     }
 
     /**
