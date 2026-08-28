@@ -27,11 +27,17 @@
                 onFinish(() => this.rebuild())
             })
         },
+        spot(card) {
+            const wall = this.$refs.wall.getBoundingClientRect()
+            const place = card.getBoundingClientRect()
+
+            return { left: place.left - wall.left, top: place.top - wall.top }
+        },
         remember() {
             this.places.clear()
 
             this.$el.querySelectorAll('.media-card').forEach((card) => {
-                this.places.set(card.dataset.file, card.getBoundingClientRect())
+                this.places.set(card.dataset.file, this.spot(card))
             })
         },
         rebuild() {
@@ -46,7 +52,7 @@
                     return
                 }
 
-                const now = card.getBoundingClientRect()
+                const now = this.spot(card)
                 const across = was.left - now.left
                 const down = was.top - now.top
 
@@ -142,6 +148,7 @@
         <div class="media__wall-side">
             <div
                 class="media__wall"
+                x-ref="wall"
                 x-bind:class="dragging && 'media__wall--dragging'"
                 wire:loading.class="media__wall--busy"
                 wire:target="search, type"
