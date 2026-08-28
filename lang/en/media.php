@@ -7,6 +7,7 @@ return [
     'empty' => 'The library is empty. Drag the first file here.',
     'search' => 'Search by name or description',
     'unused' => 'Standing nowhere',
+    'nothing' => 'Nothing found. Try another search or take the filters off.',
     'drop' => 'Drop the files to upload them',
     'uploading' => 'Uploading',
     'more' => 'Show :count more',

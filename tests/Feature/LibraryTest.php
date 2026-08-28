@@ -629,3 +629,14 @@ it('keeps the whole mind of the wall inside the one attribute that holds it', fu
 
     expect(trim(html_entity_decode($mind[1] ?? '')))->toEndWith('}');
 });
+
+it('tells a library nothing was put into from one the editor has narrowed to nothing', function () {
+    livewire(MediaLibrary::class)->assertSee(__('mediator::media.empty'));
+
+    libraryFile('obkladynka');
+
+    livewire(MediaLibrary::class)
+        ->set('search', 'дого')
+        ->assertSee(__('mediator::media.nothing'))
+        ->assertDontSee(__('mediator::media.empty'));
+});

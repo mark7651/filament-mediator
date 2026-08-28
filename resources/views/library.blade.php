@@ -222,7 +222,7 @@
                 @forelse ($wall as $file)
                     @include('mediator::card', ['file' => $file, 'deed' => $deed, 'open' => $openId === $file->id, 'ticked' => in_array($file->id, $chosen, true)])
                 @empty
-                    <p class="media__empty">{{ __('mediator::media.empty') }}</p>
+                    <p class="media__empty">{{ __($narrowed ? 'mediator::media.nothing' : 'mediator::media.empty') }}</p>
                 @endforelse
 
                 {{-- The places of the cards on their way, held from the moment they are

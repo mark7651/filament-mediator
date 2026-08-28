@@ -373,6 +373,10 @@ class MediaLibrary extends Component
             'coming' => min(self::STEP, $left),
             'open' => $this->openId === null ? null : $this->file($this->openId),
             'canDelete' => $canDelete,
+            // An empty wall says one of two things, and which of them it says
+            // is the difference between a library nothing has been put into
+            // and a library the editor has narrowed down to nothing.
+            'narrowed' => $this->search !== '' || filled($this->type) || $this->unused,
             'standingChosen' => $canDelete ? $this->standingChosen() : 0,
         ]);
     }
