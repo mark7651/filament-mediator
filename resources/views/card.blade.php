@@ -15,8 +15,14 @@
     wire:click="{{ $deed }}({{ $file->id }})"
     x-on:keydown.enter.self="$el.click()"
     x-on:keydown.space.self.prevent="$el.click()"
+    x-on:focus="roving = $el.dataset.file"
     role="button"
-    tabindex="0"
+    {{-- The wall is one stop of the keyboard and the arrows walk it from there,
+         so the tab of an editor looking for the button under the wall does not
+         go through seventy cards to reach it. The number stands written as well
+         as bound, because the wall has to be reachable before Alpine wakes. --}}
+    tabindex="{{ $loop->first ? 0 : -1 }}"
+    x-bind:tabindex="tabbable('{{ $file->id }}')"
 >
     <div class="media-card__frame">
         @if (str_starts_with($type, 'image/'))
@@ -36,7 +42,14 @@
     </div>
 
     <label class="media-card__tick" wire:click.stop>
-        <input type="checkbox" class="media-card__box" wire:click.stop="toggle({{ $file->id }})" @checked($ticked)>
+        <input
+            type="checkbox"
+            class="media-card__box"
+            wire:click.stop="toggle({{ $file->id }})"
+            tabindex="{{ $loop->first ? 0 : -1 }}"
+            x-bind:tabindex="tabbable('{{ $file->id }}')"
+            @checked($ticked)
+        >
         @svg('heroicon-m-check', 'media-card__check')
     </label>
 

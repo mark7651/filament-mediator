@@ -69,6 +69,59 @@
         walking(event) {
             return $wire.openId && ! ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)
         },
+        roving: null,
+        cards() {
+            return [...this.$refs.wall.querySelectorAll('.media-card')]
+        },
+        tabbable(file) {
+            const cards = this.cards()
+            const standing = cards.some((card) => card.dataset.file === this.roving)
+
+            return (standing ? this.roving : cards[0]?.dataset.file) === file ? 0 : -1
+        },
+        columns(cards) {
+            const top = cards[0].offsetTop
+            let across = 0
+
+            while (across < cards.length && cards[across].offsetTop === top) {
+                across++
+            }
+
+            return across || 1
+        },
+        walk(event, across, down = 0) {
+            const card = event.target.closest('.media-card')
+
+            if (! card) {
+                return
+            }
+
+            const cards = this.cards()
+            const next = cards[cards.indexOf(card) + across + down * this.columns(cards)]
+
+            if (! next) {
+                return
+            }
+
+            this.roving = next.dataset.file
+            next.focus()
+
+            if ($wire.openId) {
+                $wire.open(Number(next.dataset.file))
+            }
+        },
+        shut() {
+            const open = $wire.openId
+
+            $wire.close().then(() => {
+                const card = this.$refs.wall.querySelector(`.media-card[data-file="${open}"]`)
+
+                if (card) {
+                    this.roving = card.dataset.file
+                    card.focus()
+                }
+            })
+        },
         take(files) {
             if (! files.length) {
                 return
@@ -88,9 +141,7 @@
     x-on:dragover.prevent="dragging = true"
     x-on:dragleave.prevent="dragging = false"
     x-on:drop.prevent="dragging = false; take($event.dataTransfer.files)"
-    x-on:keydown.window.arrow-right="walking($event) && $wire.next()"
-    x-on:keydown.window.arrow-left="walking($event) && $wire.previous()"
-    x-on:keydown.window.escape="walking($event) && $wire.close()"
+    x-on:keydown.window.escape="walking($event) && shut()"
 >
     @if ($errors->any())
         <p class="media__alarm">{{ $errors->first() }}</p>
@@ -157,7 +208,13 @@
         <div class="media__wall-side">
             <div
                 class="media__wall"
+                role="group"
+                aria-label="{{ __('mediator::media.plural_title') }}"
                 x-ref="wall"
+                x-on:keydown.arrow-right.prevent="walk($event, 1)"
+                x-on:keydown.arrow-left.prevent="walk($event, -1)"
+                x-on:keydown.arrow-down.prevent="walk($event, 0, 1)"
+                x-on:keydown.arrow-up.prevent="walk($event, 0, -1)"
                 x-bind:class="dragging && 'media__wall--dragging'"
                 wire:loading.class="media__wall--busy"
                 wire:target="search, type, unused"

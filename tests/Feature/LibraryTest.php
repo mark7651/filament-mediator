@@ -603,3 +603,16 @@ it('says the ticked files stand nowhere where none of them does', function () {
         ->set('chosen', [$first->id, $second->id])
         ->assertSee(__('mediator::media.delete.unused_many', ['count' => 2]));
 });
+
+it('leaves the keyboard one stop on the wall instead of one on every card', function () {
+    collect(range(1, 3))->each(fn (int $number) => libraryFile('kartynka-'.$number));
+
+    $html = livewire(MediaLibrary::class)->html();
+
+    // A card and the tick inside it, three times over, of which one card and
+    // the tick in it stand where the keyboard lands.
+    expect(substr_count($html, 'x-bind:tabindex="tabbable('))->toBe(6)
+        ->and(substr_count($html, 'tabindex="0"'))->toBe(2)
+        ->and($html)->toContain('x-on:keydown.arrow-right.prevent="walk($event, 1)"')
+        ->and($html)->toContain('role="group"');
+});
