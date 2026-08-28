@@ -139,8 +139,7 @@
                 <x-filament::button
                     color="danger"
                     icon="heroicon-m-trash"
-                    wire:click="deleteChosen"
-                    wire:confirm="{{ __('mediator::media.delete.heading_many') }}"
+                    x-on:click="$dispatch('open-modal', { id: 'media-delete-many' })"
                 >
                     {{ __('mediator::media.actions.delete_selected') }} ({{ count($chosen) }})
                 </x-filament::button>
@@ -316,35 +315,7 @@
                             <span aria-hidden="true"> · </span>{{ trans_choice('mediator::media.standing', $open->usedBy(), ['count' => $open->usedBy()]) }}
                         </p>
 
-                        @php
-                            // A picture of a heading can stand in fifty records, and fifty
-                            // lines of them would push the deeds of the file off the panel.
-                            // What is worth reading is which kinds of record are involved,
-                            // and that is answered by the first of them.
-                            $places = array_slice($open->standsIn(), 0, 8);
-                        @endphp
-
-                        @if ($places !== [])
-                            <ul class="media-places">
-                                @foreach ($places as $place)
-                                    <li class="media-places__place">
-                                        <span class="media-places__kind">{{ $place['kind'] }}</span>
-
-                                        @if ($place['url'] === null)
-                                            <span class="media-places__name">{{ $place['label'] }}</span>
-                                        @else
-                                            <a href="{{ $place['url'] }}" target="_blank" class="media-places__name media-places__name--way">{{ $place['label'] }}</a>
-                                        @endif
-                                    </li>
-                                @endforeach
-
-                                @if ($open->usedBy() > count($places))
-                                    <li class="media-places__place media-places__place--rest">
-                                        {{ trans_choice('mediator::media.elsewhere', $open->usedBy() - count($places), ['count' => $open->usedBy() - count($places)]) }}
-                                    </li>
-                                @endif
-                            </ul>
-                        @endif
+                        @include('mediator::places', ['open' => $open])
                     </div>
 
                     <div class="media-details__deeds">
@@ -391,10 +362,7 @@
                                 :label="__('mediator::media.actions.delete')"
                                 color="danger"
                                 class="media-details__erase"
-                                wire:click="delete({{ $open->id }})"
-                                wire:confirm="{{ $open->usedBy() > 0
-                                    ? trans_choice('mediator::media.delete.in_use', $open->usedBy(), ['count' => $open->usedBy()])
-                                    : __('mediator::media.delete.unused') }}"
+                                x-on:click="$dispatch('open-modal', { id: 'media-delete' })"
                             />
                         @endif
                     </div>
@@ -402,4 +370,64 @@
             @endif
         </div>
     </div>
+
+    @if ($canDelete && $open)
+        {{-- The editor deleting a picture is deciding, and «three records» is not
+             something a decision can be made on while «практика: Сімейне право»
+             is. The way to each record stands there too, so the picture can be
+             changed where it stands before it leaves the disk. --}}
+        <x-filament::modal id="media-delete" icon="heroicon-o-trash" icon-color="danger" alignment="center" width="lg">
+            <x-slot name="heading">{{ __('mediator::media.delete.heading') }}</x-slot>
+
+            <x-slot name="description">
+                {{ $open->usedBy() > 0
+                    ? trans_choice('mediator::media.delete.in_use', $open->usedBy(), ['count' => $open->usedBy()])
+                    : __('mediator::media.delete.unused') }}
+            </x-slot>
+
+            @include('mediator::places', ['open' => $open])
+
+            <x-slot name="footerActions">
+                <x-filament::button
+                    color="danger"
+                    wire:click="delete({{ $open->id }})"
+                    x-on:click="$dispatch('close-modal', { id: 'media-delete' })"
+                >
+                    {{ __('mediator::media.actions.delete') }}
+                </x-filament::button>
+
+                <x-filament::button color="gray" x-on:click="$dispatch('close-modal', { id: 'media-delete' })">
+                    {{ __('mediator::media.actions.cancel') }}
+                </x-filament::button>
+            </x-slot>
+        </x-filament::modal>
+    @endif
+
+    @if ($canDelete && ! $many && filled($chosen))
+        <x-filament::modal id="media-delete-many" icon="heroicon-o-trash" icon-color="danger" alignment="center" width="lg">
+            <x-slot name="heading">{{ __('mediator::media.delete.heading_many') }}</x-slot>
+
+            <x-slot name="description">
+                {{-- Naming the places of fifty files would be a page of its own,
+                     so what is said of a heap is how much of it is standing. --}}
+                {{ $standingChosen > 0
+                    ? trans_choice('mediator::media.delete.in_use_many', $standingChosen, ['count' => count($chosen), 'standing' => $standingChosen])
+                    : __('mediator::media.delete.unused_many', ['count' => count($chosen)]) }}
+            </x-slot>
+
+            <x-slot name="footerActions">
+                <x-filament::button
+                    color="danger"
+                    wire:click="deleteChosen"
+                    x-on:click="$dispatch('close-modal', { id: 'media-delete-many' })"
+                >
+                    {{ __('mediator::media.actions.delete_selected') }}
+                </x-filament::button>
+
+                <x-filament::button color="gray" x-on:click="$dispatch('close-modal', { id: 'media-delete-many' })">
+                    {{ __('mediator::media.actions.cancel') }}
+                </x-filament::button>
+            </x-slot>
+        </x-filament::modal>
+    @endif
 </div>

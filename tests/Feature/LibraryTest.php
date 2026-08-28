@@ -1,13 +1,16 @@
 <?php
 
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Mediator\Filament\Pages\Library;
 use Mediator\Livewire\MediaLibrary;
 use Mediator\Models\Media;
+use Mediator\Tests\Fixtures\Article;
 use Mediator\Tests\Fixtures\ClosedPolicy;
 use Mediator\Tests\Fixtures\Person;
 use Mediator\Uses\Places;
@@ -555,4 +558,48 @@ it('keeps the wall on the files nobody stands on while the search and the type o
         ->set('search', 'zvit')
         ->assertSee($nobodys->name)
         ->assertSet('unused', true);
+});
+
+it('names in the warning the records that lose the picture with it', function () {
+    Schema::create('articles', function (Blueprint $table) {
+        $table->id();
+        $table->unsignedBigInteger('cover_id')->nullable();
+        $table->string('title')->nullable();
+        $table->softDeletes();
+    });
+
+    $picture = libraryFile();
+
+    Article::query()->create(['cover_id' => $picture->id, 'title' => 'Сімейне право']);
+
+    app(Places::class)->standsIn(Article::class, 'cover_id');
+
+    livewire(MediaLibrary::class)
+        ->call('open', $picture->id)
+        ->assertSee(__('mediator::media.delete.heading'))
+        ->assertSee('Сімейне право')
+        ->assertDontSee('wire:confirm', escape: false);
+});
+
+it('says of the ticked files how many of them stand somewhere', function () {
+    $standing = libraryFile('obkladynka');
+    $nobodys = libraryFile('zabuta');
+
+    app(Places::class)->counted(
+        fn (Media $file): int => (int) ($file->id === $standing->id),
+        anywhere: fn (): array => [$standing->id],
+    );
+
+    livewire(MediaLibrary::class)
+        ->set('chosen', [$standing->id, $nobodys->id])
+        ->assertSee(trans_choice('mediator::media.delete.in_use_many', 1, ['count' => 2, 'standing' => 1]));
+});
+
+it('says the ticked files stand nowhere where none of them does', function () {
+    $first = libraryFile('obkladynka');
+    $second = libraryFile('zabuta');
+
+    livewire(MediaLibrary::class)
+        ->set('chosen', [$first->id, $second->id])
+        ->assertSee(__('mediator::media.delete.unused_many', ['count' => 2]));
 });

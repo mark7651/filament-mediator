@@ -365,14 +365,29 @@ class MediaLibrary extends Component
     {
         $wall = $this->query()->take($this->shown)->get();
         $left = max($this->query()->count() - $wall->count(), 0);
+        $canDelete = Gate::allows('deleteAny', Mediator::model());
 
         return view('mediator::library', [
             'wall' => $wall,
             'left' => $left,
             'coming' => min(self::STEP, $left),
             'open' => $this->openId === null ? null : $this->file($this->openId),
-            'canDelete' => Gate::allows('deleteAny', Mediator::model()),
+            'canDelete' => $canDelete,
+            'standingChosen' => $canDelete ? $this->standingChosen() : 0,
         ]);
+    }
+
+    /**
+     * How many of the ticked files stand somewhere, which is what the warning
+     * of a mass deletion says instead of naming the places of fifty files.
+     */
+    private function standingChosen(): int
+    {
+        if ($this->chosen === [] || $this->many) {
+            return 0;
+        }
+
+        return count(array_intersect($this->chosen, app(Places::class)->standingAnywhere()));
     }
 
     /**

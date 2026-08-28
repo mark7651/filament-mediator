@@ -101,7 +101,9 @@ A record with two columns for files is registered twice, once per column. `count
 no column leads to: a file standing inside the json of a page is found by reading the pages, not by
 following a relation.
 
-The panel of an open file says where it stands, not only how many places that is. A record found
+The panel of an open file says where it stands, not only how many places that is, and so does the
+warning that stands between the file and the disk: an editor about to delete a picture reads the kind
+and the name of every record that will lose it, each of them a way to the record itself. A record found
 through `standsIn()` is named by its `title`, its `name` or, carrying neither, by its number, and it
 is linked to its page in the panel wherever the project has a resource for that model. A place
 written down with `counted()` is a number and nothing more, unless the project hands over the

@@ -54,6 +54,7 @@ return [
         'close' => 'Close',
         'choose_many' => 'Insert into the text',
         'replace' => 'Replace the file',
+        'cancel' => 'Cancel',
         'delete' => 'Delete',
         'delete_selected' => 'Delete the selected',
         'upload' => 'Upload',
