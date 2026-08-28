@@ -18,7 +18,16 @@
 >
     <div class="media-card__frame">
         @if (str_starts_with($type, 'image/'))
-            <img src="{{ $file->thumbnailUrl }}" alt="{{ $file->alt }}" loading="lazy" class="media-card__image">
+            <img
+                src="{{ $file->thumbnailUrl }}"
+                alt="{{ $file->alt }}"
+                loading="lazy"
+                class="media-card__image"
+                x-data="{ ready: false }"
+                x-init="ready = $el.complete"
+                x-on:load="ready = true"
+                x-bind:class="ready && 'media-card__image--ready'"
+            >
         @else
             @svg($sign, 'media-card__sign')
         @endif

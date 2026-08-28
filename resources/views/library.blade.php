@@ -152,6 +152,26 @@
                     <p class="media__empty">{{ __('mediator::media.empty') }}</p>
                 @endforelse
 
+                {{-- The places of the cards on their way, held from the moment they are
+                     asked for so the wall grows into a space that is already there and
+                     the foot of it stays under the eye that reached it. --}}
+                @for ($number = 1; $number <= $coming; $number++)
+                    <div
+                        class="media-ghost"
+                        wire:loading.block
+                        wire:target="loadMore"
+                        wire:key="ghost-{{ $number }}"
+                        aria-hidden="true"
+                    >
+                        <div class="media-ghost__frame"></div>
+
+                        <div class="media-ghost__text">
+                            <span class="media-ghost__line"></span>
+                            <span class="media-ghost__line media-ghost__line--short"></span>
+                        </div>
+                    </div>
+                @endfor
+
                 <div class="media__drop" x-show="dragging || uploading" x-cloak>
                     <span x-show="! uploading">{{ __('mediator::media.drop') }}</span>
                     <span x-show="uploading" x-text="`{{ __('mediator::media.uploading') }} ${progress}%`"></span>

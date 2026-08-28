@@ -126,6 +126,18 @@
         background-color: var(--gray-50);
         box-shadow: 0 0 0 1px var(--gray-200);
         transition: box-shadow 200ms ease, transform 200ms ease;
+        animation: media-card-in 240ms ease-out;
+    }
+
+    /* Only a card that is new to the page runs this: the ones already standing
+       are kept by their key and morphed rather than drawn again. Left without a
+       fill so the raised state of the hover is the card's own again as soon as
+       it has arrived. */
+    @keyframes media-card-in {
+        from {
+            opacity: 0;
+            transform: translateY(0.375rem);
+        }
     }
 
     .dark .media-card {
@@ -184,11 +196,18 @@
         opacity: 1;
     }
 
+    /* A card stands before the picture in it has arrived, so the picture is
+       brought up rather than dropped into the grey frame it was waiting in. */
     .media-card__image {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 350ms ease;
+        opacity: 0;
+        transition: opacity 200ms ease, transform 350ms ease;
+    }
+
+    .media-card__image--ready {
+        opacity: 1;
     }
 
     .media-card:hover .media-card__image {
@@ -281,6 +300,62 @@
 
     .dark .media-card__facts {
         color: var(--gray-400);
+    }
+
+    /* Kept away by the stylesheet rather than by the script, because the wall is
+       drawn before Livewire is awake and a wall that opens on a row of grey
+       cards is the very jump these are here to take out. */
+    .media-ghost {
+        display: none;
+        overflow: hidden;
+        border-radius: 0.875rem;
+        background-color: var(--gray-50);
+        box-shadow: 0 0 0 1px var(--gray-200);
+    }
+
+    .dark .media-ghost {
+        background-color: var(--gray-900);
+        box-shadow: 0 0 0 1px var(--gray-800);
+    }
+
+    .media-ghost__frame {
+        aspect-ratio: 1 / 1;
+        background-color: var(--gray-100);
+    }
+
+    .dark .media-ghost__frame {
+        background-color: var(--gray-950);
+    }
+
+    .media-ghost__text {
+        display: grid;
+        gap: 0.4375rem;
+        padding: 0.75rem;
+    }
+
+    .media-ghost__line {
+        height: 0.5rem;
+        border-radius: 999px;
+        background-color: var(--gray-200);
+    }
+
+    .dark .media-ghost__line {
+        background-color: var(--gray-800);
+    }
+
+    .media-ghost__line--short {
+        width: 55%;
+    }
+
+    .media-ghost__frame,
+    .media-ghost__line {
+        animation: media-ghost-breath 1.4s ease-in-out infinite;
+    }
+
+    @keyframes media-ghost-breath {
+        50% {
+            opacity: 0.45;
+        }
     }
 
     .media-details {
@@ -565,6 +640,15 @@
             animation: none;
         }
 
+        .media-card {
+            animation: none;
+        }
+
+        .media-ghost__frame,
+        .media-ghost__line {
+            animation: none;
+        }
+
         .media-card,
         .media-card__image,
         .media-card__frame::after,
@@ -579,6 +663,10 @@
 
         .media-card:hover .media-card__image {
             transform: none;
+        }
+
+        .media-card__image {
+            opacity: 1;
         }
     }
 </style>

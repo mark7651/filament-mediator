@@ -352,10 +352,12 @@ class MediaLibrary extends Component
     public function render(): View
     {
         $wall = $this->query()->take($this->shown)->get();
+        $left = max($this->query()->count() - $wall->count(), 0);
 
         return view('mediator::library', [
             'wall' => $wall,
-            'left' => max($this->query()->count() - $wall->count(), 0),
+            'left' => $left,
+            'coming' => min(self::STEP, $left),
             'open' => $this->openId === null ? null : $this->file($this->openId),
             'canDelete' => Gate::allows('deleteAny', Mediator::model()),
         ]);

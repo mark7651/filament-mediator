@@ -75,6 +75,16 @@ it('holds back the rest of the library until the wall is asked for more', functi
         ->assertSee('kartynka-01');
 });
 
+it('holds the place of every card still to come while the wall is asked for more', function () {
+    collect(range(1, 30))->each(fn (int $number): Media => libraryFile('kartynka-'.$number));
+
+    $wall = livewire(MediaLibrary::class);
+
+    expect(substr_count($wall->html(), 'class="media-ghost"'))->toBe(6);
+
+    $wall->call('loadMore')->assertDontSeeHtml('class="media-ghost"');
+});
+
 it('finds a file by the name it was given rather than by the name of the file', function () {
     $named = libraryFile('dsc-4210', title: 'Портрет Олени');
     $described = libraryFile('dsc-4211', alt: 'Юрист біля мікрофона');
