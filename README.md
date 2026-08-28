@@ -19,6 +19,17 @@ Intervention (GD or Imagick).
 
 ## Installation
 
+The package is not on Packagist, so name its repository first:
+
+```json
+"repositories": [
+    {
+        "type": "vcs",
+        "url": "https://github.com/mark7651/filament-mediator.git"
+    }
+]
+```
+
 ```bash
 composer require mark7651/filament-mediator
 php artisan migrate
