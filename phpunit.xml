@@ -9,6 +9,9 @@
             <directory>tests/Feature</directory>
         </testsuite>
     </testsuites>
+    <php>
+        <env name="APP_KEY" value="base64:IT6I7IeUzOi3gDKU7AmS/6z4ir74n2qk+qo9uA55I4M="/>
+    </php>
     <source>
         <include>
             <directory>src</directory>
