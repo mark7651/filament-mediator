@@ -1,0 +1,44 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "mark7651/filament-mediator",
+    "description": "A media library for Filament panels: a wall of files, a form field and an editor button.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "filament/filament": "^5.7",
+        "illuminate/contracts": "^13.0",
+        "illuminate/support": "^13.0",
+        "livewire/livewire": "^4.4"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.30",
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^5.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mediator\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Mediator\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Mediator\\MediatorServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
