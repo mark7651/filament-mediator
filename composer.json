@@ -3,7 +3,26 @@
     "name": "mark7651/filament-mediator",
     "description": "A media library for Filament panels: a wall of files, a form field and an editor button.",
     "type": "library",
+    "keywords": [
+        "laravel",
+        "filament",
+        "media",
+        "media-library",
+        "glide",
+        "livewire"
+    ],
+    "homepage": "https://github.com/mark7651/filament-mediator",
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Max",
+            "email": "37314381+mark7651@users.noreply.github.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/mark7651/filament-mediator/issues",
+        "source": "https://github.com/mark7651/filament-mediator"
+    },
     "require": {
         "php": "^8.3",
         "enshrined/svg-sanitize": "^0.22",
