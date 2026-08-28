@@ -616,3 +616,16 @@ it('leaves the keyboard one stop on the wall instead of one on every card', func
         ->and($html)->toContain('x-on:keydown.arrow-right.prevent="walk($event, 1)"')
         ->and($html)->toContain('role="group"');
 });
+
+it('keeps the whole mind of the wall inside the one attribute that holds it', function () {
+    libraryFile();
+
+    $html = livewire(MediaLibrary::class)->html();
+
+    // A double quote written inside the script of the wall closes the attribute
+    // it stands in, and every behaviour of the library after that point is gone
+    // without a word said in the panel.
+    preg_match('/ x-data="(.*?)"/s', $html, $mind);
+
+    expect(trim(html_entity_decode($mind[1] ?? '')))->toEndWith('}');
+});

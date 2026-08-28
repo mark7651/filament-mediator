@@ -114,7 +114,7 @@
             const open = $wire.openId
 
             $wire.close().then(() => {
-                const card = this.$refs.wall.querySelector(`.media-card[data-file="${open}"]`)
+                const card = this.$refs.wall.querySelector(`.media-card[data-file='${open}']`)
 
                 if (card) {
                     this.roving = card.dataset.file
