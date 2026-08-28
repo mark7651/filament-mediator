@@ -54,6 +54,13 @@ class Media extends Model
     private ?int $usedBy = null;
 
     /**
+     * The places themselves, kept the same way and for the same reason.
+     *
+     * @var list<array{kind: string, label: string, url: string|null}>|null
+     */
+    private ?array $standsIn = null;
+
+    /**
      * @var list<string>
      */
     protected $fillable = [
@@ -112,6 +119,17 @@ class Media extends Model
     public function usedBy(): int
     {
         return $this->usedBy ??= app(Places::class)->standing($this);
+    }
+
+    /**
+     * Which records those are, of the ones the register can name. Shorter than
+     * the count wherever a project wrote a place down as a number alone.
+     *
+     * @return list<array{kind: string, label: string, url: string|null}>
+     */
+    public function standsIn(): array
+    {
+        return $this->standsIn ??= app(Places::class)->named($this);
     }
 
     /**

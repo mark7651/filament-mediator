@@ -305,6 +305,36 @@
                             {{ __('mediator::media.taken', ['when' => $open->created_at?->format('d.m.Y H:i')]) }}
                             <span aria-hidden="true"> · </span>{{ trans_choice('mediator::media.standing', $open->usedBy(), ['count' => $open->usedBy()]) }}
                         </p>
+
+                        @php
+                            // A picture of a heading can stand in fifty records, and fifty
+                            // lines of them would push the deeds of the file off the panel.
+                            // What is worth reading is which kinds of record are involved,
+                            // and that is answered by the first of them.
+                            $places = array_slice($open->standsIn(), 0, 8);
+                        @endphp
+
+                        @if ($places !== [])
+                            <ul class="media-places">
+                                @foreach ($places as $place)
+                                    <li class="media-places__place">
+                                        <span class="media-places__kind">{{ $place['kind'] }}</span>
+
+                                        @if ($place['url'] === null)
+                                            <span class="media-places__name">{{ $place['label'] }}</span>
+                                        @else
+                                            <a href="{{ $place['url'] }}" target="_blank" class="media-places__name media-places__name--way">{{ $place['label'] }}</a>
+                                        @endif
+                                    </li>
+                                @endforeach
+
+                                @if ($open->usedBy() > count($places))
+                                    <li class="media-places__place media-places__place--rest">
+                                        {{ trans_choice('mediator::media.elsewhere', $open->usedBy() - count($places), ['count' => $open->usedBy() - count($places)]) }}
+                                    </li>
+                                @endif
+                            </ul>
+                        @endif
                     </div>
 
                     <div class="media-details__deeds">

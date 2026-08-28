@@ -35,6 +35,7 @@ return [
 
     'taken' => 'Uploaded :when',
     'standing' => '{0}stands nowhere|{1}stands in one record|[2,*]stands in :count records',
+    'elsewhere' => '{1}and in one record more|[2,*]and in :count records more',
 
     'hints' => [
         'alt' => 'Read out by screen readers and shown when the image has not loaded.',

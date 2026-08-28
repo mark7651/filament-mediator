@@ -101,6 +101,19 @@ A record with two columns for files is registered twice, once per column. `count
 no column leads to: a file standing inside the json of a page is found by reading the pages, not by
 following a relation.
 
+The panel of an open file says where it stands, not only how many places that is. A record found
+through `standsIn()` is named by its `title`, its `name` or, carrying neither, by its number, and it
+is linked to its page in the panel wherever the project has a resource for that model. A place
+written down with `counted()` is a number and nothing more, unless the project hands over the
+records as well:
+
+```php
+app(Places::class)->counted(
+    fn (Media $file): int => Page::standingIn($file)->count(),
+    fn (Media $file): Collection => Page::standingIn($file)->get(),
+);
+```
+
 The register is a singleton and is filled from the `boot()` of a provider of the project.
 
 ## A model of your own

@@ -85,6 +85,14 @@ it('holds the place of every card still to come while the wall is asked for more
     $wall->call('loadMore')->assertDontSeeHtml('class="media-ghost"');
 });
 
+it('opens a card from the keyboard as well as from the pointer', function () {
+    libraryFile('obkladynka');
+
+    livewire(MediaLibrary::class)
+        ->assertSeeHtml('x-on:keydown.enter.self')
+        ->assertSeeHtml('x-on:keydown.space.self.prevent');
+});
+
 it('finds a file by the name it was given rather than by the name of the file', function () {
     $named = libraryFile('dsc-4210', title: 'Портрет Олени');
     $described = libraryFile('dsc-4211', alt: 'Юрист біля мікрофона');

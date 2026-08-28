@@ -13,6 +13,8 @@
     data-file="{{ $file->id }}"
     wire:key="file-{{ $file->id }}"
     wire:click="{{ $deed }}({{ $file->id }})"
+    x-on:keydown.enter.self="$el.click()"
+    x-on:keydown.space.self.prevent="$el.click()"
     role="button"
     tabindex="0"
 >
