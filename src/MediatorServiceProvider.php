@@ -14,6 +14,7 @@ class MediatorServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadRoutesFrom(__DIR__.'/../routes/mediator.php');
 
         if ($this->app->runningInConsole()) {
             $this->publishes([

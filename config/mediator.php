@@ -59,4 +59,37 @@ return [
         'default' => 100 * 1024 * 1024,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Thumbnails
+    |--------------------------------------------------------------------------
+    |
+    | Pictures are redrawn to the size they are looked at by Glide, through a
+    | route of this package. Every address carries a signature, so that nobody
+    | outside can ask for a thousand sizes of one file and fill the disk with
+    | them. Where no token is set, the key of the application signs them.
+    |
+    | The drawn pictures are kept on the local disk under the folder named
+    | here. The address of the file itself stays what it always was: a picture
+    | on a page is served straight off its disk and never through this route.
+    |
+    */
+
+    'thumbnails' => [
+
+        'path' => 'mediator/pictures',
+
+        'token' => env('MEDIATOR_THUMBNAIL_TOKEN'),
+
+        'cache' => storage_path('app/mediator-thumbnails'),
+
+        'max_image_size' => 2000 * 2000,
+
+        'sizes' => [
+            'thumbnail' => ['w' => 200, 'h' => 200, 'fit' => 'crop', 'fm' => 'webp'],
+            'large' => ['w' => 1024, 'h' => 1024, 'fit' => 'contain', 'fm' => 'webp'],
+        ],
+
+    ],
+
 ];

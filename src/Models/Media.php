@@ -6,6 +6,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Mediator\Glide\Thumbnails;
 use Throwable;
 
 /**
@@ -37,6 +38,8 @@ use Throwable;
  * @property-read string|null $url
  * @property-read string $full_path
  * @property-read string $pretty_name
+ * @property-read string|null $thumbnail_url
+ * @property-read string|null $large_url
  */
 class Media extends Model
 {
@@ -113,6 +116,26 @@ class Media extends Model
 
                 return $storage->url($this->path);
             },
+        )->shouldCache();
+    }
+
+    /**
+     * The address of the picture drawn small enough for a wall of them.
+     */
+    protected function thumbnailUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => app(Thumbnails::class)->url($this, 'thumbnail'),
+        )->shouldCache();
+    }
+
+    /**
+     * The address of the picture drawn for the one card that is open.
+     */
+    protected function largeUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => app(Thumbnails::class)->url($this, 'large'),
         )->shouldCache();
     }
 
