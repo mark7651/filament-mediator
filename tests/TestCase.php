@@ -66,6 +66,10 @@ abstract class TestCase extends Orchestra
     {
         $app['config']->set('database.default', 'testing');
         $app['config']->set('auth.providers.users.model', Person::class);
+        $app['config']->set('view.paths', [
+            ...$app['config']->get('view.paths', []),
+            __DIR__.'/Fixtures/views',
+        ]);
 
         // Livewire cuts every upload at twelve megabytes of its own accord,
         // which is less than the library takes. The ceiling belongs to the

@@ -41,6 +41,7 @@ return [
     ],
 
     'actions' => [
+        'image' => 'Image',
         'view' => 'Open',
         'edit' => 'Rename',
         'save' => 'Save',
