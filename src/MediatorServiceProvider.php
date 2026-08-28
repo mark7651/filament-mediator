@@ -15,11 +15,16 @@ class MediatorServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadRoutesFrom(__DIR__.'/../routes/mediator.php');
+        $this->loadTranslationsFrom(__DIR__.'/../lang', 'mediator');
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../config/mediator.php' => config_path('mediator.php'),
             ], 'mediator-config');
+
+            $this->publishes([
+                __DIR__.'/../lang' => $this->app->langPath('vendor/mediator'),
+            ], 'mediator-translations');
         }
     }
 }

@@ -70,9 +70,9 @@ class Thumbnails
      * Drop every drawn size of a file, which is what a file replaced under the
      * same record needs: the address stays and the picture behind it changed.
      */
-    public function forget(Media $file): void
+    public function forget(string $disk, string $path): void
     {
-        $this->server($file->disk)->deleteCache($file->path);
+        $this->server($disk)->deleteCache($path);
     }
 
     public function path(): string

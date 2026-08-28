@@ -3,10 +3,12 @@
 namespace Mediator\Models;
 
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Mediator\Glide\Thumbnails;
+use Mediator\Observers\MediaObserver;
 use Throwable;
 
 /**
@@ -41,6 +43,7 @@ use Throwable;
  * @property-read string|null $thumbnail_url
  * @property-read string|null $large_url
  */
+#[ObservedBy(MediaObserver::class)]
 class Media extends Model
 {
     /**

@@ -61,6 +61,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Pictures on the way in
+    |--------------------------------------------------------------------------
+    |
+    | A photograph is not kept as the camera wrote it: jpeg and png are turned
+    | the right way up, brought down to the longest side named here and written
+    | as webp. Above that side nothing on a page gains anything, and a phone
+    | pays for every pixel it is sent.
+    |
+    */
+
+    'pictures' => [
+        'longest_side' => 2560,
+        'quality' => 82,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Thumbnails
     |--------------------------------------------------------------------------
     |
