@@ -32,7 +32,7 @@ return [
     'fields' => [
         'image' => 'Image',
         'title' => 'Name',
-        'alt' => 'Description for those who cannot see the image',
+        'alt' => 'Alt',
     ],
 
     'taken' => 'Uploaded :when',
