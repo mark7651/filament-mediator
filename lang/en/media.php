@@ -11,6 +11,8 @@ return [
     'drop' => 'Drop the files to upload them',
     'uploading' => 'Uploading',
     'more' => 'Show :count more',
+    'newer' => 'Newer files',
+    'older' => 'Older files: :count more',
     'renamed' => 'Saved',
     'copied' => 'The address is copied',
     'replaced' => 'The file is replaced',

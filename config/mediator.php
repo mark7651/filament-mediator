@@ -83,11 +83,42 @@ return [
     |--------------------------------------------------------------------------
     |
     | How many cards stand on the wall when it opens and how many are added at
-    | a time as it is scrolled.
+    | a time as it is scrolled, and how many it holds at most.
+    |
+    | The wall grows to the ceiling and then pages instead: everything on it
+    | is sent anew on every deed of the library, so a wall that grew without
+    | end would come to weigh a megabyte a click. At the ceiling the button
+    | that added a step becomes the one that moves the wall on to the older
+    | files, and another one appears beside it to come back to the newer.
     |
     */
 
     'step' => 24,
+
+    'wall' => 240,
+
+    /*
+    |--------------------------------------------------------------------------
+    | How the library is searched
+    |--------------------------------------------------------------------------
+    |
+    | Where this says like, the words typed are looked for anywhere inside the
+    | name of a file, the name it was given and what it shows for those who
+    | cannot see it. That is a reading of the whole table, which is nothing on
+    | a library of thousands and something on a library of hundreds of
+    | thousands.
+    |
+    | Where it says words, the same three are asked of the full-text index the
+    | third migration of the package raises, and a file is found by the words
+    | it holds rather than by a run of letters inside one: «dogovir 2024»
+    | finds a file named «2024-dogovir-final», which like does not, and «ovir»
+    | finds nothing, which like does. Set it after the migration has run, and
+    | only on MySQL or MariaDB: on any other database the library reads as it
+    | always did.
+    |
+    */
+
+    'search' => 'like',
 
     /*
     |--------------------------------------------------------------------------

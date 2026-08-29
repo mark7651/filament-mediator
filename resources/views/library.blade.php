@@ -205,7 +205,7 @@
     </div>
 
     <div class="media__body @if ($open) media__body--open @endif">
-        <div class="media__wall-side">
+        <div class="media__wall-side" x-on:media-paged.window="$el.scrollTop = 0; $el.scrollIntoView({ block: 'nearest' })">
             <div
                 class="media__wall"
                 role="group"
@@ -251,39 +251,58 @@
                 </div>
             </div>
 
-            @if ($left > 0)
-                <div
-                    class="media__more"
-                    x-data="{
-                        watcher: null,
-                        init() {
-                            const port = this.$el.closest('.media__wall-side')
+            @if ($from > 0 || $left > 0)
+                <div class="media__more">
+                    {{-- The wall grows to its ceiling and moves along the library
+                         from there on, so the way back to the newer files stands
+                         beside the way further into the older ones. --}}
+                    @if ($from > 0)
+                        <x-filament::button color="gray" icon="heroicon-m-chevron-up" wire:click="back" wire:loading.attr="disabled">
+                            {{ __('mediator::media.newer') }}
+                        </x-filament::button>
+                    @endif
 
-                            this.watcher = new IntersectionObserver(([entry]) => this.reach(entry), {
-                                root: getComputedStyle(port).overflowY === 'auto' ? port : null,
-                                rootMargin: '100px',
-                            })
+                    @if ($left > 0 && $growing)
+                        <div
+                            x-data="{
+                                watcher: null,
+                                init() {
+                                    const port = this.$el.closest('.media__wall-side')
 
-                            this.watcher.observe(this.$el)
-                        },
-                        reach(entry) {
-                            if (! entry.isIntersecting) {
-                                return
-                            }
+                                    this.watcher = new IntersectionObserver(([entry]) => this.reach(entry), {
+                                        root: getComputedStyle(port).overflowY === 'auto' ? port : null,
+                                        rootMargin: '100px',
+                                    })
 
-                            this.$wire.loadMore().then(() => {
-                                this.watcher.unobserve(this.$el)
-                                this.$nextTick(() => this.watcher.observe(this.$el))
-                            })
-                        },
-                        destroy() {
-                            this.watcher.disconnect()
-                        },
-                    }"
-                >
-                    <x-filament::button color="gray" wire:click="loadMore" wire:loading.attr="disabled">
-                        {{ __('mediator::media.more', ['count' => $left]) }}
-                    </x-filament::button>
+                                    this.watcher.observe(this.$el)
+                                },
+                                reach(entry) {
+                                    if (! entry.isIntersecting) {
+                                        return
+                                    }
+
+                                    this.$wire.loadMore().then(() => {
+                                        this.watcher.unobserve(this.$el)
+                                        this.$nextTick(() => this.watcher.observe(this.$el))
+                                    })
+                                },
+                                destroy() {
+                                    this.watcher.disconnect()
+                                },
+                            }"
+                        >
+                            <x-filament::button color="gray" wire:click="loadMore" wire:loading.attr="disabled">
+                                {{ __('mediator::media.more', ['count' => $left]) }}
+                            </x-filament::button>
+                        </div>
+                    @elseif ($left > 0)
+                        {{-- Nothing reaches for the next windowful of its own accord:
+                             a wall that replaced itself under the eye reading it
+                             would lose the reader's place. --}}
+                        <x-filament::button color="gray" icon="heroicon-m-chevron-down" wire:click="further" wire:loading.attr="disabled">
+                            {{ __('mediator::media.older', ['count' => $left]) }}
+                        </x-filament::button>
+                    @endif
                 </div>
             @endif
         </div>

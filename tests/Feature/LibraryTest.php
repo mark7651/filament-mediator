@@ -797,3 +797,74 @@ it('leaves out of the free files the ones standing in a column of the project', 
         ->assertSee($nobodys->name)
         ->assertDontSee($standing->name);
 });
+
+it('stops growing at the ceiling of the wall and moves along the library instead', function () {
+    config()->set('mediator.step', 4);
+    config()->set('mediator.wall', 8);
+
+    collect(range(1, 20))->each(fn (int $number): Media => libraryFile('kartynka-'.str_pad((string) $number, 2, '0', STR_PAD_LEFT)));
+
+    $wall = livewire(MediaLibrary::class)
+        ->assertSee('kartynka-20')
+        ->assertDontSee('kartynka-16')
+        ->assertSee(__('mediator::media.more', ['count' => 16]))
+        ->call('loadMore');
+
+    // Eight cards is the whole of the wall from here on, and the button that
+    // added a step is gone: what stands at the foot now moves the wall.
+    $wall->assertSee('kartynka-13')
+        ->assertDontSee('kartynka-12')
+        ->assertDontSee(__('mediator::media.more', ['count' => 8]))
+        ->assertSee(__('mediator::media.older', ['count' => 12]));
+});
+
+it('moves the wall on to the older files and back to the newer ones', function () {
+    config()->set('mediator.step', 4);
+    config()->set('mediator.wall', 8);
+
+    collect(range(1, 20))->each(fn (int $number): Media => libraryFile('kartynka-'.str_pad((string) $number, 2, '0', STR_PAD_LEFT)));
+
+    $wall = livewire(MediaLibrary::class)->call('loadMore')->call('loadMore')->call('further');
+
+    // The window opens at one step again, as the wall does wherever it stands.
+    $wall->assertSee('kartynka-12')
+        ->assertSee('kartynka-09')
+        ->assertDontSee('kartynka-13')
+        ->assertDontSee('kartynka-08')
+        ->assertSee(__('mediator::media.newer'))
+        ->assertDispatched('media-paged');
+
+    $wall->call('back')
+        ->assertSee('kartynka-20')
+        ->assertDontSee('kartynka-16')
+        ->assertDontSee(__('mediator::media.newer'));
+});
+
+it('forgets what was ticked and what was open when the wall moves', function () {
+    config()->set('mediator.step', 4);
+    config()->set('mediator.wall', 4);
+
+    $files = collect(range(1, 10))->map(fn (int $number): Media => libraryFile('kartynka-'.str_pad((string) $number, 2, '0', STR_PAD_LEFT)));
+
+    livewire(MediaLibrary::class)
+        ->call('toggle', $files->last()->id)
+        ->call('open', $files->last()->id)
+        ->call('further')
+        ->assertSet('chosen', [])
+        ->assertSet('openId', null)
+        ->assertSet('from', 4);
+});
+
+it('reads the whole table for a search where the project asked for no index', function () {
+    $named = libraryFile('dsc-4210', title: 'Портрет Олени');
+    $other = libraryFile('dsc-4211');
+
+    // Asked for on a database that keeps no full-text index of its own, which
+    // is what the reading is there for: the library answers as it always does.
+    config()->set('mediator.search', 'words');
+
+    livewire(MediaLibrary::class)
+        ->set('search', 'ортре')
+        ->assertSee($named->name)
+        ->assertDontSee($other->name);
+});

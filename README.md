@@ -31,12 +31,17 @@ and the one named in `mediator.texts_table`, which holds the files standing insi
 empty until a project says which of its texts can hold them. A table that is already there is left
 as it is, so a project carrying files over from another library keeps its own.
 
+The third migration indexes what the library is looked through by: the kind of a file, which the wall
+is narrowed by, and, on MySQL and MariaDB, the three columns a file is looked for in gathered into
+one full-text index. It runs over the table whether the package raised it or a project brought it,
+and an index already standing is left where it is.
+
 The migrations are published rather than run out of the package, because the table of the library is
 the project's own: a project that wants a column, an index or a key of its own in it edits the file
 it was given instead of altering what it has just raised.
 
-They are handed over under the names the package holds them by, `0001_01_01_000000` and
-`0001_01_01_000001`, and not under the hour of the publishing. The records of a project point at the
+They are handed over under the names the package holds them by, `0001_01_01_000000` to
+`0001_01_01_000002`, and not under the hour of the publishing. The records of a project point at the
 table of the library with keys of their own, so it has to stand before them; a project that wants it
 raised later renames the file it was given.
 
@@ -65,6 +70,27 @@ Files stand on a wall of cards that grows as it is scrolled, is searched by the 
 and by what it says for those who cannot see it, and is narrowed by the kind of file and by whether
 anything stands on it. A card opens a panel of details beside the wall: the picture itself, the two
 words a person may write about it, everything the library knows of the file, and where it stands.
+
+The wall grows by `step` cards at a time up to `wall` cards, and moves along the library from there
+on instead of growing further: at the ceiling the foot of the wall offers the older files a
+windowful at a time, and the way back to the newer ones stands beside it. Everything on the wall is
+drawn anew and sent anew on every deed of the library, so the ceiling is what keeps a click on a
+library of fifty thousand files as cheap as a click on a library of fifty. Nothing reaches for the
+next windowful of its own accord: a wall that replaced itself under the eye reading it would lose
+the reader's place.
+
+### Searching a big library
+
+`search` says how the wall is searched. Where it says `like`, which is what a library gets until it
+is told otherwise, the letters typed are looked for anywhere inside the name of a file, the name it
+was given and its alt, and that is a reading of the whole table.
+
+Where it says `words`, the same three columns are asked of the full-text index the third migration
+raises. The two answer differently, which is why it is the project that chooses: `dogovir 2024`
+finds a file named `2024-dogovir-final` by the index and not by the reading, and `ovir` finds it by
+the reading and not by the index. Set it only on MySQL or MariaDB and only once that migration has
+run; anywhere else the library reads as it always did, and so it does for a search whose words are
+shorter than the three letters such an index holds.
 
 The wall answers the keyboard as a wall and not as a list of seventy stops. One tab reaches it and
 the next leaves it; inside, the arrows walk from card to card, left and right to the neighbour, up
@@ -320,7 +346,8 @@ What the config decides:
 | `model`, `table` | the record of a file and the table it stands on |
 | `texts_table` | the table of the files standing inside texts |
 | `types` | every kind of file the library holds, and the extension each is written with |
-| `step` | how many cards stand on the wall when it opens and are added at a time |
+| `step`, `wall` | how many cards stand on the wall when it opens and are added at a time, and how many it holds at most |
+| `search` | whether the wall is searched by reading the table (`like`) or by asking the full-text index (`words`) |
 | `disk`, `directory`, `visibility` | where a new file is written; files are laid out in folders by year and month |
 | `ceilings` | how heavy a file may be, pictures held to a tenth of the rest |
 | `pictures` | the longest side a photograph is brought down to, the quality it is written with, and the kinds redrawn on the way in |

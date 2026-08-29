@@ -60,6 +60,7 @@ class MediatorServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../database/migrations/0001_01_01_000000_create_mediator_table.php' => database_path('migrations/0001_01_01_000000_create_mediator_table.php'),
                 __DIR__.'/../database/migrations/0001_01_01_000001_create_mediator_texts_table.php' => database_path('migrations/0001_01_01_000001_create_mediator_texts_table.php'),
+                __DIR__.'/../database/migrations/0001_01_01_000002_index_mediator_table.php' => database_path('migrations/0001_01_01_000002_index_mediator_table.php'),
             ], 'mediator-migrations');
 
             $this->publishes([

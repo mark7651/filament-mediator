@@ -64,3 +64,13 @@ it('puts on the wall as many cards at a time as the project asks for', function 
         ->call('loadMore')
         ->assertSet('shown', 4);
 });
+
+it('holds how far the wall grows and how it is searched', function () {
+    expect(config('mediator.step'))->toBe(24)
+        ->and(config('mediator.wall'))->toBe(240)
+        // The reading is what a library gets until the project has raised the
+        // index and said so, because the index answers differently and a
+        // library whose answers changed under it on an upgrade would be a
+        // library nobody trusts.
+        ->and(config('mediator.search'))->toBe('like');
+});

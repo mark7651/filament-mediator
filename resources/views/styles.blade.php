@@ -116,6 +116,7 @@
 
     .media__more {
         display: flex;
+        gap: 0.5rem;
         justify-content: center;
     }
     .media-card {

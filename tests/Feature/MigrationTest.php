@@ -29,7 +29,7 @@ it('leaves a table that is already there alone', function () {
 });
 
 it('hands its migrations to the project rather than running them itself', function () {
-    $published = fn (): array => File::glob(database_path('migrations/*_create_mediator_*table.php'));
+    $published = fn (): array => File::glob(database_path('migrations/*_mediator_*table.php'));
 
     foreach ($published() as $file) {
         File::delete($file);
@@ -39,7 +39,7 @@ it('hands its migrations to the project rather than running them itself', functi
 
     $files = $published();
 
-    expect($files)->toHaveCount(2);
+    expect($files)->toHaveCount(3);
 
     // Handed over under the names the package holds them by, and never under
     // the hour of the publishing: the table of the library is pointed at by
@@ -49,9 +49,48 @@ it('hands its migrations to the project rather than running them itself', functi
     expect(array_map('basename', $files))->toBe([
         '0001_01_01_000000_create_mediator_table.php',
         '0001_01_01_000001_create_mediator_texts_table.php',
+        '0001_01_01_000002_index_mediator_table.php',
     ]);
 
     foreach ($files as $file) {
         File::delete($file);
     }
+});
+
+it('indexes the column the wall is narrowed by', function () {
+    $indexes = collect(Schema::getIndexes('media'))->pluck('columns');
+
+    expect($indexes)->toContain(['type']);
+});
+
+it('indexes a table it never raised itself', function () {
+    Schema::drop('media');
+
+    Schema::create('media', function (Blueprint $table): void {
+        $table->id();
+        $table->string('path');
+        $table->string('type');
+        $table->string('name');
+        $table->string('title')->nullable();
+        $table->string('alt')->nullable();
+    });
+
+    $migration = require dirname(__DIR__, 2).'/database/migrations/0001_01_01_000002_index_mediator_table.php';
+    $migration->up();
+
+    expect(collect(Schema::getIndexes('media'))->pluck('columns'))->toContain(['type']);
+
+    // Run a second time over the same table, as it is whenever a project
+    // publishes the migrations of the package anew: an index already standing
+    // is left where it is rather than raised again under another name.
+    $migration->up();
+
+    expect(collect(Schema::getIndexes('media'))->pluck('columns')->filter(fn (array $columns): bool => $columns === ['type']))
+        ->toHaveCount(1);
+});
+
+it('asks for words of a database that keeps none only where there is one', function () {
+    // Sqlite holds no full-text index, so the three columns a file is looked
+    // for by are left unindexed and the library reads them instead.
+    expect(collect(Schema::getIndexes('media'))->pluck('columns'))->not->toContain(['name', 'title', 'alt']);
 });

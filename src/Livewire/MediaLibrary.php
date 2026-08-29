@@ -40,6 +40,17 @@ class MediaLibrary extends Component
      */
     private const STEP = 24;
 
+    /**
+     * How many cards the wall holds at most, where the project says nothing.
+     */
+    private const WALL = 240;
+
+    /**
+     * The shortest word a full-text index holds, which is what MySQL is set to
+     * out of the box.
+     */
+    private const LETTERS = 3;
+
     public string $search = '';
 
     /**
@@ -55,6 +66,16 @@ class MediaLibrary extends Component
 
     #[Locked]
     public int $shown = 0;
+
+    /**
+     * How many cards of the library the wall starts after.
+     *
+     * Nought while the wall is growing, which is what it does until it reaches
+     * its ceiling; from there on the wall moves along the library a windowful
+     * at a time instead of growing, and this is where the window stands.
+     */
+    #[Locked]
+    public int $from = 0;
 
     #[Locked]
     public ?int $openId = null;
@@ -141,6 +162,19 @@ class MediaLibrary extends Component
     }
 
     /**
+     * How many cards the wall holds at most.
+     *
+     * Everything standing on the wall is drawn anew and sent anew on every
+     * deed of the library, so a wall that grew without end would come to weigh
+     * a megabyte a click. Never below one step, because a wall that cannot
+     * hold what it opens with is not a wall.
+     */
+    private function ceiling(): int
+    {
+        return max((int) config('mediator.wall', self::WALL), $this->step());
+    }
+
+    /**
      * The wall opens on one step of cards. Filled here rather than where the
      * property stands, because the number is the project's to say and a
      * property cannot ask.
@@ -192,7 +226,38 @@ class MediaLibrary extends Component
      */
     public function loadMore(): void
     {
-        $this->shown += $this->step();
+        $this->shown = min($this->shown + $this->step(), $this->ceiling());
+    }
+
+    /**
+     * The window moved on to the files older than the ones standing on it,
+     * which is what the foot of the wall offers once it has grown as far as it
+     * grows.
+     */
+    public function further(): void
+    {
+        $this->page($this->from + $this->shown);
+    }
+
+    /**
+     * And back to the newer ones, a whole windowful at a time.
+     */
+    public function back(): void
+    {
+        $this->page(max($this->from - $this->ceiling(), 0));
+    }
+
+    /**
+     * The wall moved to another part of the library. It opens there the way it
+     * opens anywhere: one step of cards, nothing ticked, nothing open, and the
+     * eye at the top of it rather than at the foot it was reading a moment ago.
+     */
+    private function page(int $from): void
+    {
+        $this->reopen();
+        $this->from = $from;
+
+        $this->dispatch('media-paged');
     }
 
     public function open(int $id): void
@@ -435,26 +500,32 @@ class MediaLibrary extends Component
 
     public function render(): View
     {
-        $wall = $this->query()->take($this->shown)->get();
+        $wall = $this->query()->skip($this->from)->take($this->shown)->get();
 
         // Counted only where the wall came back full, because a wall holding
         // less than it was asked for is the whole of what there is and the
         // count would say so a second time.
         $left = $wall->count() < $this->shown
             ? 0
-            : max($this->query()->count() - $wall->count(), 0);
+            : max($this->query()->count() - $this->from - $wall->count(), 0);
+        $growing = $this->shown < $this->ceiling();
         $canDelete = Gate::allows('deleteAny', Mediator::model());
 
         return view('mediator::library', [
             'wall' => $wall,
             'left' => $left,
-            'coming' => min($this->step(), $left),
+            // The wall grows into the places of the cards on their way only
+            // while it is growing at all: a wall at its ceiling is replaced
+            // rather than added to, and places held for cards that are not
+            // coming would be holes in it.
+            'growing' => $growing,
+            'coming' => $growing ? min($this->step(), $left) : 0,
             'open' => $this->openId === null ? null : $this->file($this->openId),
             'canDelete' => $canDelete,
             // An empty wall says one of two things, and which of them it says
             // is the difference between a library nothing has been put into
             // and a library the editor has narrowed down to nothing.
-            'narrowed' => $this->search !== '' || filled($this->type) || $this->unused,
+            'narrowed' => $this->search !== '' || filled($this->type) || $this->unused || $this->from > 0,
             'standingChosen' => $canDelete ? $this->standingChosen() : 0,
         ]);
     }
@@ -478,18 +549,7 @@ class MediaLibrary extends Component
     private function query(): Builder
     {
         return Mediator::query()
-            ->when($this->search !== '', function (Builder $query): void {
-                $like = '%'.$this->search.'%';
-
-                // The picture itself cannot be searched, so what is searched is
-                // everything the library knows in words: the name of the file,
-                // the name it was given, and what it shows for those who cannot
-                // see it.
-                $query->where(fn (Builder $query): Builder => $query
-                    ->where('name', 'like', $like)
-                    ->orWhere('title', 'like', $like)
-                    ->orWhere('alt', 'like', $like));
-            })
+            ->when($this->search !== '', fn (Builder $query): Builder => $this->found($query))
             // A field may take an svg or a png and nothing else, and a wall of
             // files that cannot be chosen is a wall of dead ends.
             ->when($this->takes !== [], fn (Builder $query): Builder => $query->whereIn('type', $this->takes))
@@ -502,6 +562,74 @@ class MediaLibrary extends Component
             // that is not being tidied has no use for it.
             ->when($this->unused, fn (Builder $query): Builder => app(Places::class)->free($query))
             ->orderByDesc('id');
+    }
+
+    /**
+     * The wall narrowed to what was typed into the search.
+     *
+     * The picture itself cannot be searched, so what is searched is everything
+     * the library knows in words: the name of the file, the name it was given,
+     * and what it shows for those who cannot see it.
+     *
+     * Those three are read letter by letter through the whole table, or asked
+     * of a full-text index where the project says its library has grown big
+     * enough to want one. The two answer differently, which is why it is the
+     * project that chooses: a run of letters inside a word is found by the
+     * reading and not by the index, and two words in either order are found by
+     * the index and not by the reading.
+     *
+     * @param  Builder<Media>  $query
+     * @return Builder<Media>
+     */
+    private function found(Builder $query): Builder
+    {
+        $words = $this->words($query->getConnection()->getDriverName());
+
+        if ($words === []) {
+            $like = '%'.$this->search.'%';
+
+            return $query->where(fn (Builder $query): Builder => $query
+                ->where('name', 'like', $like)
+                ->orWhere('title', 'like', $like)
+                ->orWhere('alt', 'like', $like));
+        }
+
+        // Every word has to stand somewhere in the file, and the end of each is
+        // left open, so a name typed half way finds it.
+        return $query->whereFullText(
+            ['name', 'title', 'alt'],
+            implode(' ', array_map(fn (string $word): string => '+'.$word.'*', $words)),
+            ['mode' => 'boolean'],
+        );
+    }
+
+    /**
+     * The words of the search, where there is an index to ask with them.
+     *
+     * Nothing comes back from a project that asked for the reading, from a
+     * database that keeps no such index, and from a search too short for one to
+     * hold: a word of one or two letters is not written into a full-text index
+     * at all, and asking with it would answer nothing where the reading
+     * answers.
+     *
+     * @return list<string>
+     */
+    private function words(string $driver): array
+    {
+        if (config('mediator.search') !== 'words' || ! in_array($driver, ['mysql', 'mariadb'], true)) {
+            return [];
+        }
+
+        /** @var list<string> $words */
+        $words = preg_split('/[^\p{L}\p{N}_]+/u', $this->search, flags: PREG_SPLIT_NO_EMPTY) ?: [];
+
+        foreach ($words as $word) {
+            if (mb_strlen($word) < self::LETTERS) {
+                return [];
+            }
+        }
+
+        return $words;
     }
 
     /**
@@ -614,6 +742,7 @@ class MediaLibrary extends Component
     private function reopen(): void
     {
         $this->shown = $this->step();
+        $this->from = 0;
         $this->close();
 
         // While the ticks stand for what goes into the text they survive the
