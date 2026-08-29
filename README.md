@@ -25,7 +25,10 @@ composer require mark7651/filament-mediator
 php artisan migrate
 ```
 
-The migration creates the table named in `mediator.table`, `media` by default.
+Two tables are raised: the one named in `mediator.table`, `media` by default, which holds the files,
+and the one named in `mediator.texts_table`, which holds the files standing inside texts and stays
+empty until a project says which of its texts can hold them. A table that is already there is left
+as it is, so a project carrying files over from another library keeps its own.
 
 Register the plugin on the panel that gets the library:
 
@@ -45,6 +48,20 @@ read while the panel is still being built. The icon is `heroicon-o-photo` unless
 
 That registration also hangs the styles of the library on the panel, so a project has nothing to add
 to its own build.
+
+## The wall
+
+Files stand on a wall of cards that grows as it is scrolled, is searched by the name a file was given
+and by what it says for those who cannot see it, and is narrowed by the kind of file and by whether
+anything stands on it. A card opens a panel of details beside the wall: the picture itself, the two
+words a person may write about it, everything the library knows of the file, and where it stands.
+
+The wall answers the keyboard as a wall and not as a list of seventy stops. One tab reaches it and
+the next leaves it; inside, the arrows walk from card to card, left and right to the neighbour, up
+and down by a row. Enter and the space bar open the card under the focus, and while the panel of
+details is open it follows the focus from card to card. Escape closes it and puts the focus back on
+the card it was opened from. The tick of a card is reachable by tab from the card itself and stays
+out of the way of every other card.
 
 ## A file in a record
 
