@@ -41,7 +41,7 @@ class Thumbnails
         }
 
         return (new UrlBuilder($this->path(), new Signature($this->token())))
-            ->getUrl($file->path, $this->measures($size));
+            ->getUrl($file->path, $this->measures($size, $file));
     }
 
     public function redraws(Media $file): bool
@@ -93,13 +93,33 @@ class Thumbnails
     }
 
     /**
+     * The measures the picture is drawn to, and for a file the disk does not
+     * serve openly, the hour the address stops being good.
+     *
+     * A file on a private disk is served through an address that is good for
+     * minutes rather than for ever, and its thumbnail has to be worth no more
+     * than the file: the picture is the same picture, only smaller, and an
+     * address to it that never runs out would outlive the one to the file
+     * itself and hand it to anybody it was ever pasted to.
+     *
+     * The hour is signed along with the rest, so it cannot be moved, and Glide
+     * knows nothing of it: it is not one of the measures a picture is drawn by,
+     * so two addresses that differ only in it are the same drawn picture and
+     * not two.
+     *
      * @return array<string, string|int>
      */
-    private function measures(string $size): array
+    private function measures(string $size, ?Media $file = null): array
     {
         /** @var array<string, array<string, string|int>> $sizes */
         $sizes = config('mediator.thumbnails.sizes', []);
 
-        return $sizes[$size] ?? [];
+        $measures = $sizes[$size] ?? [];
+
+        if ($file !== null && $file->visibility === 'private') {
+            $measures['expires'] = now()->addMinutes(Media::privateFor())->getTimestamp();
+        }
+
+        return $measures;
     }
 }

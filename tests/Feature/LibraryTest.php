@@ -7,12 +7,17 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Mediator\Filament\Pages\Library;
 use Mediator\Livewire\MediaLibrary;
 use Mediator\Models\Media;
 use Mediator\Tests\Fixtures\Article;
 use Mediator\Tests\Fixtures\ClosedPolicy;
 use Mediator\Tests\Fixtures\Person;
+use Mediator\Tests\Fixtures\PickyPolicy;
+use Mediator\Tests\Fixtures\QuietPolicy;
+use Mediator\Tests\Fixtures\ShutPolicy;
+use Mediator\Tests\Fixtures\SweepingPolicy;
 use Mediator\Uses\Places;
 
 beforeEach(function () {
@@ -203,7 +208,8 @@ it('clears out the files that were ticked, one deletion each', function () {
     }
 
     livewire(MediaLibrary::class)
-        ->set('chosen', [$first->id, $second->id])
+        ->call('toggle', $first->id)
+        ->call('toggle', $second->id)
         ->call('deleteChosen');
 
     expect(Media::query()->pluck('id')->all())->toBe([$kept->id]);
@@ -237,7 +243,7 @@ it('keeps the library out of the hands the policy of the project keeps it from',
     Gate::policy(Media::class, ClosedPolicy::class);
 
     livewire(MediaLibrary::class)
-        ->set('chosen', [$picture->id])
+        ->call('toggle', $picture->id)
         ->assertDontSee(__('mediator::media.actions.delete_selected'))
         ->call('delete', $picture->id)
         ->assertForbidden();
@@ -249,7 +255,7 @@ it('offers the whole library to everyone where the project says nothing', functi
     $picture = libraryFile();
 
     livewire(MediaLibrary::class)
-        ->set('chosen', [$picture->id])
+        ->call('toggle', $picture->id)
         ->assertSee(__('mediator::media.actions.delete_selected'));
 });
 
@@ -290,7 +296,7 @@ it('forgets what was ticked when the wall is filtered anew', function () {
     $picture = libraryFile('obkladynka');
 
     livewire(MediaLibrary::class)
-        ->set('chosen', [$picture->id])
+        ->call('toggle', $picture->id)
         ->set('type', 'document')
         ->assertSet('chosen', [])
         ->call('deleteChosen');
@@ -591,7 +597,8 @@ it('says of the ticked files how many of them stand somewhere', function () {
     );
 
     livewire(MediaLibrary::class)
-        ->set('chosen', [$standing->id, $nobodys->id])
+        ->call('toggle', $standing->id)
+        ->call('toggle', $nobodys->id)
         ->assertSee(trans_choice('mediator::media.delete.in_use_many', 1, ['count' => 2, 'standing' => 1]));
 });
 
@@ -600,7 +607,8 @@ it('says the ticked files stand nowhere where none of them does', function () {
     $second = libraryFile('zabuta');
 
     livewire(MediaLibrary::class)
-        ->set('chosen', [$first->id, $second->id])
+        ->call('toggle', $first->id)
+        ->call('toggle', $second->id)
         ->assertSee(__('mediator::media.delete.unused_many', ['count' => 2]));
 });
 
@@ -649,4 +657,143 @@ it('holds the panel of details to the column it stands in, whatever is written i
     $styles = view('mediator::styles')->render();
 
     expect($styles)->toContain('grid-template-columns: minmax(0, 1fr)');
+});
+
+it('asks of every ticked file whether this person may delete that one', function () {
+    $locked = libraryFile('zamknena', title: 'zamknena');
+    $other = libraryFile('zvychaina', title: 'zvychaina');
+
+    foreach ([$locked, $other] as $file) {
+        Storage::disk('public')->put($file->path, 'file');
+    }
+
+    Gate::policy(Media::class, PickyPolicy::class);
+
+    // The button stands on deleteAny, which is a question about the person, so
+    // an armful is refused by the one file in it that this person may not
+    // touch, and refused before any of the rest has gone.
+    livewire(MediaLibrary::class)
+        ->call('toggle', $other->id)
+        ->call('toggle', $locked->id)
+        ->call('deleteChosen')
+        ->assertForbidden();
+
+    expect(Media::query()->count())->toBe(2);
+
+    Storage::disk('public')->assertExists($other->path);
+});
+
+it('clears out the ticked files the policy of the project has nothing against', function () {
+    $first = libraryFile('persha', title: 'persha');
+    $second = libraryFile('druha', title: 'druha');
+
+    Gate::policy(Media::class, PickyPolicy::class);
+
+    livewire(MediaLibrary::class)
+        ->call('toggle', $first->id)
+        ->call('toggle', $second->id)
+        ->call('deleteChosen');
+
+    expect(Media::query()->count())->toBe(0);
+});
+
+it('keeps the mind of the wall out of the hands of the browser', function () {
+    libraryFile();
+
+    $wall = livewire(MediaLibrary::class);
+
+    // Every one of these decides what the wall does with a file: which files
+    // are about to be deleted, which kinds it takes, how much of the library it
+    // draws at once and whether it is standing in a form at all.
+    expect(fn () => $wall->set('chosen', [1]))->toThrow(CannotUpdateLockedPropertyException::class)
+        ->and(fn () => $wall->set('takes', ['application/pdf']))->toThrow(CannotUpdateLockedPropertyException::class)
+        ->and(fn () => $wall->set('shown', 100000))->toThrow(CannotUpdateLockedPropertyException::class)
+        ->and(fn () => $wall->set('picking', true))->toThrow(CannotUpdateLockedPropertyException::class)
+        ->and(fn () => $wall->set('openId', 1))->toThrow(CannotUpdateLockedPropertyException::class);
+});
+
+it('opens the wall of the library only to whoever the project lets look through it', function () {
+    libraryFile();
+
+    Gate::policy(Media::class, ShutPolicy::class);
+
+    livewire(MediaLibrary::class)->assertForbidden();
+
+    expect(Library::canAccess())->toBeFalse();
+});
+
+it('leaves a wall opened to choose a file to the form that opened it', function () {
+    $picture = libraryFile();
+
+    Gate::policy(Media::class, ShutPolicy::class);
+
+    // The person is inside a record they were allowed to open, and the file
+    // they pick is written by that record and nowhere else.
+    livewire(MediaLibrary::class, ['picking' => true])
+        ->assertSee($picture->name)
+        ->call('choose', $picture->id)
+        ->assertDispatched('media-chosen', id: $picture->id);
+});
+
+it('does nothing with a file the project keeps this person from', function () {
+    $mine = libraryFile('moia', title: 'moia');
+    $theirs = libraryFile('chuzha', title: 'chuzha');
+
+    Storage::disk('public')->put($theirs->path, 'file');
+
+    Gate::policy(Media::class, PickyPolicy::class);
+
+    livewire(MediaLibrary::class)
+        ->call('open', $theirs->id)
+        ->assertSet('openId', null)
+        ->call('delete', $theirs->id)
+        ->call('open', $mine->id)
+        ->assertSet('openId', $mine->id);
+
+    expect(Media::query()->count())->toBe(2);
+
+    Storage::disk('public')->assertExists($theirs->path);
+});
+
+it('asks a policy that answers for every ability at once as readily as one written file by file', function () {
+    $file = libraryFile('moia');
+
+    Gate::policy(Media::class, SweepingPolicy::class);
+
+    livewire(MediaLibrary::class)
+        ->call('open', $file->id)
+        ->assertSet('openId', null);
+});
+
+it('shows the files a policy standing aside says nothing about', function () {
+    $file = libraryFile('moia');
+
+    Gate::policy(Media::class, QuietPolicy::class);
+
+    livewire(MediaLibrary::class)
+        ->call('open', $file->id)
+        ->assertSet('openId', $file->id);
+});
+
+it('leaves out of the free files the ones standing in a column of the project', function () {
+    Schema::create('articles', function (Blueprint $table) {
+        $table->id();
+        $table->unsignedBigInteger('cover_id')->nullable();
+        $table->softDeletes();
+    });
+
+    $standing = libraryFile('obkladynka');
+    $nobodys = libraryFile('zabuta');
+
+    Article::query()->create(['cover_id' => $standing->id]);
+
+    app(Places::class)->standsIn(Article::class, 'cover_id');
+
+    // A place written down as a column is asked of the database as a condition
+    // on the wall itself, so the library never carries the numbers of every
+    // file that stands somewhere out of the database and back into it.
+    livewire(MediaLibrary::class)
+        ->set('unused', true)
+        ->assertSee($nobodys->name)
+        ->assertDontSee($standing->name);
 });

@@ -695,6 +695,45 @@
         gap: 0.5rem;
     }
 
+    .media-field__standing {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .media-field__standing .media-field__chosen {
+        flex-wrap: nowrap;
+    }
+
+    .media-field__remove {
+        flex: 0 0 auto;
+        margin-inline-start: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 0.5rem;
+        color: var(--gray-400);
+        transition: color 200ms ease, background-color 200ms ease;
+    }
+
+    .media-field__remove:hover {
+        background-color: var(--gray-200);
+        color: var(--gray-700);
+    }
+
+    .dark .media-field__remove:hover {
+        background-color: var(--gray-800);
+        color: var(--gray-200);
+    }
+
+    .media-field__remove-sign {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
     @media (prefers-reduced-motion: reduce) {
         .media-details {
             animation: none;

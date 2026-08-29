@@ -115,7 +115,11 @@ class Texts
             return [];
         }
 
-        return Mediator::query()
+        // Asked of the whole table rather than of the library as the project
+        // shows it: a text is read when its record is saved, which happens in a
+        // console command and a queued job as readily as under somebody signed
+        // in, and a record of what a text holds is a fact about the text.
+        return Mediator::unscoped()
             ->whereIn('name', array_values(array_unique($names)))
             ->pluck('id')
             ->map(fn (int|string $id): int => (int) $id)

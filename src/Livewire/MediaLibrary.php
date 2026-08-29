@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Gate;
 use Intervention\Image\Exceptions\DecoderException;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -52,15 +53,23 @@ class MediaLibrary extends Component
      */
     public bool $unused = false;
 
+    #[Locked]
     public int $shown = 0;
 
+    #[Locked]
     public ?int $openId = null;
 
     /**
      * The files ticked for deleting together.
      *
+     * Held under lock, as everything the wall itself writes down is: the ticks
+     * are put there by a card that was clicked, and a list of numbers arriving
+     * from the browser instead would be a list of files somebody chose without
+     * ever seeing the wall they stand on.
+     *
      * @var list<int>
      */
+    #[Locked]
     public array $chosen = [];
 
     /**
@@ -80,6 +89,7 @@ class MediaLibrary extends Component
      * Whether the library was opened to choose a file for a field of a record
      * rather than to be looked through on its own page.
      */
+    #[Locked]
     public bool $picking = false;
 
     /**
@@ -88,7 +98,17 @@ class MediaLibrary extends Component
      * pictures goes into it as one deed instead of opening the library again
      * for each of them.
      */
+    #[Locked]
     public bool $many = false;
+
+    /**
+     * Whether the gathering is for the text of a page rather than for a field
+     * of a record. The two are the same wall and the same ticking, and the
+     * button under them says what each is for: a picture is put into a text
+     * and a file is taken into a field.
+     */
+    #[Locked]
+    public bool $intoText = false;
 
     /**
      * The kinds of file the wall is narrowed to, where the field that opened
@@ -97,6 +117,7 @@ class MediaLibrary extends Component
      *
      * @var list<string>
      */
+    #[Locked]
     public array $takes = [];
 
     /**
@@ -128,6 +149,23 @@ class MediaLibrary extends Component
     {
         if ($this->shown < 1) {
             $this->shown = $this->step();
+        }
+    }
+
+    /**
+     * The library as a place to look through is opened by whoever the project
+     * lets look through it.
+     *
+     * Asked once the component stands rather than in boot(), because what it
+     * asks about is how the wall was opened and that is only known after the
+     * mounting. A wall opened to choose a file for a field is left to the form
+     * above it: the person is already inside a record they were allowed to
+     * open, and the file they pick is written by that form and nowhere else.
+     */
+    public function booted(): void
+    {
+        if (! $this->picking) {
+            Gate::authorize('viewAny', Mediator::model());
         }
     }
 
@@ -183,12 +221,12 @@ class MediaLibrary extends Component
      */
     public function next(): void
     {
-        $this->walk(1);
+        $this->walk('<');
     }
 
     public function previous(): void
     {
-        $this->walk(-1);
+        $this->walk('>');
     }
 
     public function saveDetails(): void
@@ -232,6 +270,14 @@ class MediaLibrary extends Component
      * Deleted one record at a time on purpose: the file leaves the disk through
      * the observer of the package, which hangs off the model, and a single
      * statement over the whole set would leave every file where it was.
+     *
+     * Every one of them is asked about by itself before any of them goes. The
+     * button is offered on the strength of deleteAny, which is a question about
+     * the person and not about a file, and a project whose policy lets an
+     * editor delete some files and not others would otherwise have that policy
+     * answered once for a whole armful. Asked before the first deletion rather
+     * than as each comes up, so a refusal in the middle does not leave half the
+     * armful gone.
      */
     public function deleteChosen(): void
     {
@@ -243,6 +289,8 @@ class MediaLibrary extends Component
         }
 
         Gate::authorize('deleteAny', Mediator::model());
+
+        $files->each(fn (Media $file) => Gate::authorize('delete', $file));
 
         $files->each(function (Media $file): void {
             $file->delete();
@@ -388,7 +436,13 @@ class MediaLibrary extends Component
     public function render(): View
     {
         $wall = $this->query()->take($this->shown)->get();
-        $left = max($this->query()->count() - $wall->count(), 0);
+
+        // Counted only where the wall came back full, because a wall holding
+        // less than it was asked for is the whole of what there is and the
+        // count would say so a second time.
+        $left = $wall->count() < $this->shown
+            ? 0
+            : max($this->query()->count() - $wall->count(), 0);
         $canDelete = Gate::allows('deleteAny', Mediator::model());
 
         return view('mediator::library', [
@@ -415,7 +469,7 @@ class MediaLibrary extends Component
             return 0;
         }
 
-        return count(array_intersect($this->chosen, app(Places::class)->standingAnywhere()));
+        return app(Places::class)->held(Mediator::query()->whereKey($this->chosen))->count();
     }
 
     /**
@@ -444,9 +498,9 @@ class MediaLibrary extends Component
             // hands that over as it is.
             ->when(filled($this->type), fn (Builder $query): Builder => $this->ofType($query))
             // Asked of the register only where the wall is narrowed to them:
-            // the answer costs a query per registered place, and a wall that
-            // is not being tidied has no use for it.
-            ->when($this->unused, fn (Builder $query): Builder => $query->whereNotIn('id', app(Places::class)->standingAnywhere()))
+            // the answer costs a condition per registered place, and a wall
+            // that is not being tidied has no use for it.
+            ->when($this->unused, fn (Builder $query): Builder => app(Places::class)->free($query))
             ->orderByDesc('id');
     }
 
@@ -468,37 +522,87 @@ class MediaLibrary extends Component
         };
     }
 
+    /**
+     * The record behind a number that came from the browser, where the library
+     * shows it and the person looking is allowed to see it.
+     *
+     * Every deed of the wall goes through here, so the answer to «may this
+     * person see this file» is given in one place: the wall never opens, walks
+     * to, renames or deletes a record it would not have shown in the first
+     * place.
+     */
     private function file(?int $id): ?Media
     {
         if ($id === null) {
             return null;
         }
 
-        /** @var Media|null */
-        return Mediator::query()->find($id);
+        $file = Mediator::query()->find($id);
+
+        return $file instanceof Media && $this->mayBeSeen($file) ? $file : null;
+    }
+
+    /**
+     * Whether this person may be shown this file.
+     *
+     * A project that says nothing about looking at one file in particular is
+     * not a project that hides files, and asking a policy for an ability it
+     * never wrote would answer no to every file in the library at once. So the
+     * question is put only where the policy of the project has an answer to
+     * it, and a project that has to keep one person out of the files of
+     * another writes a view() and is asked it here.
+     */
+    private function mayBeSeen(Media $file): bool
+    {
+        $policy = Gate::getPolicyFor($file);
+
+        if ($policy === null) {
+            return true;
+        }
+
+        if (method_exists($policy, 'view') || method_exists($policy, '__call')) {
+            return Gate::allows('view', $file);
+        }
+
+        // A policy that says nothing about one file in particular may still
+        // say something about every ability at once. A before() that answers
+        // is an answer here as well, and one that stands aside leaves the file
+        // where the query put it. Asked the way the gate itself asks it.
+        $person = auth()->user();
+
+        $said = $person !== null && method_exists($policy, 'before')
+            ? $policy->before($person, 'view', $file)
+            : null;
+
+        return $said === null || (bool) $said;
     }
 
     /**
      * Moves the open file by one step along the wall as it stands now, so the
      * search and the filter decide what «beside» means.
+     *
+     * Asked of the database as the one file beside this one rather than as the
+     * whole wall to be counted through: the wall is ordered by the key, so the
+     * card after the open one is the nearest key under it and the card before
+     * it the nearest key over, and either is an index away however long the
+     * library has grown.
      */
-    private function walk(int $step): void
+    private function walk(string $side): void
     {
         if ($this->openId === null) {
             return;
         }
 
-        $ids = $this->query()->pluck('id')->map(fn (int|string $id): int => (int) $id)->all();
-        $at = array_search($this->openId, $ids, strict: true);
+        $files = $this->query();
+        $key = $files->getModel()->getQualifiedKeyName();
 
-        if (! is_int($at)) {
-            return;
-        }
+        $beside = $files
+            ->where($key, $side, $this->openId)
+            ->reorder($key, $side === '<' ? 'desc' : 'asc')
+            ->first();
 
-        $next = $ids[$at + $step] ?? null;
-
-        if ($next !== null) {
-            $this->open((int) $next);
+        if ($beside !== null) {
+            $this->open((int) $beside->getKey());
         }
     }
 

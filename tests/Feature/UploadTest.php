@@ -1,9 +1,12 @@
 <?php
 
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Mediator\Mediator;
 use Mediator\Uploads\Upload;
 
 beforeEach(function () {
@@ -144,4 +147,49 @@ it('takes the file off the disk when the record of it goes', function () {
     $file->delete();
 
     expect(Storage::disk('public')->exists($path))->toBeFalse();
+});
+
+it('writes into the row of a new file what the project says of it', function () {
+    Schema::table('media', function (Blueprint $table): void {
+        $table->string('account')->nullable();
+        $table->string('came_from')->nullable();
+    });
+
+    Mediator::filling(fn (array $said, UploadedFile $file): array => [
+        'account' => 'zoria',
+        'came_from' => $file->getClientOriginalName(),
+        // What the library said of the file is handed over as well, so the
+        // project can answer with something read off it.
+        'title' => strtoupper((string) $said['ext']),
+    ]);
+
+    $file = Upload::store(photograph(40, 30));
+
+    expect($file->getAttribute('account'))->toBe('zoria')
+        ->and($file->getAttribute('came_from'))->toBe('Знімок (1).jpg')
+        ->and($file->title)->toBe('WEBP')
+        ->and($file->width)->toBe(40);
+});
+
+it('asks the project again when a new picture goes behind a record that stands', function () {
+    Schema::table('media', function (Blueprint $table): void {
+        $table->unsignedInteger('longest')->nullable();
+    });
+
+    Mediator::filling(fn (array $said): array => ['longest' => max((int) $said['width'], (int) $said['height'])]);
+
+    $file = Upload::store(photograph(40, 30));
+
+    expect($file->getAttribute('longest'))->toBe(40);
+
+    Upload::replace($file, photograph(20, 60));
+
+    expect($file->refresh()->getAttribute('longest'))->toBe(60);
+});
+
+it('writes a row of the library the same way where the project says nothing', function () {
+    $file = Upload::store(photograph(40, 30));
+
+    expect($file->title)->toBe('Знімок (1)')
+        ->and($file->type)->toBe('image/webp');
 });

@@ -184,7 +184,7 @@
                     wire:click="chooseMany"
                     :disabled="blank($chosen)"
                 >
-                    {{ __('mediator::media.actions.choose_many') }}@if (filled($chosen)) ({{ count($chosen) }})@endif
+                    {{ __($intoText ? 'mediator::media.actions.into_text' : 'mediator::media.actions.choose_many') }}@if (filled($chosen)) ({{ count($chosen) }})@endif
                 </x-filament::button>
             @elseif ($canDelete && filled($chosen))
                 <x-filament::button

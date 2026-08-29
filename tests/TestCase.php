@@ -30,6 +30,16 @@ abstract class TestCase extends Orchestra
     }
 
     /**
+     * The tables of the library, raised the way a project raises them: the
+     * package hands its migrations over to be published rather than running
+     * them itself, so the bench holds them the way a project would.
+     */
+    protected function defineDatabaseMigrations(): void
+    {
+        $this->loadMigrationsFrom(dirname(__DIR__).'/database/migrations');
+    }
+
+    /**
      * The whole of a Filament panel, because the library is a section of one
      * and a section is only worth testing where the panel around it stands.
      *

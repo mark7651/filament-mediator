@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\DB;
+use Mediator\Mediator;
 use Mediator\Models\Media;
 
 /**
@@ -43,14 +45,23 @@ class Places
     private array $finders = [];
 
     /**
-     * The same places again, asked which files of the library they hold, all
-     * of them at once. Asked of the place rather than of the file because the
-     * question is put about the whole library: a wall narrowed to the files
-     * nobody stands on would otherwise cost a count per file per place.
+     * The same places once more, written as a condition on the library itself
+     * rather than as a question about one file: which rows of the table this
+     * place holds, said in the words of the query.
      *
-     * @var list<Closure(): iterable<int, int|string>>
+     * Written this way because the question is put about the whole wall at
+     * once. A place that answers with the numbers it holds makes the library
+     * carry every one of them out of the database and back into it inside a
+     * list, and a library of fifty thousand files carries fifty thousand
+     * numbers; a place that answers as a condition is a join the database
+     * settles on its own.
+     *
+     * Each of these adds one alternative to a group of them, so a file standing
+     * in any single place stands.
+     *
+     * @var list<Closure(Builder<Media>): mixed>
      */
-    private array $holders = [];
+    private array $stands = [];
 
     /**
      * The texts of the project that can hold files, by the model they are
@@ -90,14 +101,19 @@ class Places
 
         $this->finders[] = fn (Media $file): Collection => $records($file)->get();
 
-        $this->holders[] = function () use ($model, $column, $withTrashed): SupportCollection {
-            $held = $model::query()->whereNotNull($column)->distinct();
+        $this->stands[] = function (Builder $files) use ($model, $column, $withTrashed): void {
+            $held = $model::query();
 
             if ($withTrashed) {
                 $held->withTrashed();
             }
 
-            return $held->pluck($column);
+            $held->whereColumn(
+                $held->getModel()->qualifyColumn($column),
+                $files->getModel()->getQualifiedKeyName(),
+            );
+
+            $files->orWhereExists($held);
         };
 
         return $this->counted(fn (Media $file): int => $records($file)->count());
@@ -169,10 +185,13 @@ class Places
 
         $this->reading = true;
 
+        $this->stands[] = fn (Builder $files) => $files->orWhereExists(
+            DB::table(Texts::table())->whereColumn('media_id', $files->getModel()->getQualifiedKeyName()),
+        );
+
         return $this->counted(
             fn (Media $file): int => count($this->holders($file)),
             fn (Media $file): array => $this->records($file),
-            anywhere: fn (): array => Texts::query()->distinct()->pluck('media_id')->all(),
         );
     }
 
@@ -245,7 +264,13 @@ class Places
         }
 
         if ($anywhere !== null) {
-            $this->holders[] = $anywhere;
+            $this->stands[] = function (Builder $files) use ($anywhere): void {
+                $held = SupportCollection::make($anywhere())->all();
+
+                if ($held !== []) {
+                    $files->orWhereIn($files->getModel()->getQualifiedKeyName(), $held);
+                }
+            };
         }
 
         return $this;
@@ -263,14 +288,45 @@ class Places
     }
 
     /**
+     * The library narrowed to the files that stand in at least one place.
+     *
+     * @param  Builder<Media>  $files
+     * @return Builder<Media>
+     */
+    public function held(Builder $files): Builder
+    {
+        return $files->where(function (Builder $files): void {
+            // A library nobody wrote a place down for holds no file that stands
+            // anywhere, and a group of no alternatives at all would be true of
+            // every row rather than of none.
+            if ($this->stands === []) {
+                $files->whereRaw('1 = 0');
+
+                return;
+            }
+
+            foreach ($this->stands as $stands) {
+                $stands($files);
+            }
+        });
+    }
+
+    /**
+     * The library narrowed to the files nobody stands on, which are the ones
+     * that can be swept out without breaking a page.
+     *
+     * @param  Builder<Media>  $files
+     * @return Builder<Media>
+     */
+    public function free(Builder $files): Builder
+    {
+        return $files->whereNot(fn (Builder $files) => $this->held($files));
+    }
+
+    /**
      * The numbers of every file of the library standing in at least one place.
      *
-     * The library is tidied by deleting, and deleting is safe only where
-     * nothing stands on the file. That question is asked of the whole wall at
-     * once, so it is answered by the places: each names the files it holds,
-     * and what is left over is nobody's.
-     *
-     * A place that cannot name the files it holds is left out of the answer,
+     * A place that cannot say which files it holds is left out of the answer,
      * and its files are counted among nobody's. The register knows what the
      * project told it, and nothing else.
      *
@@ -278,15 +334,11 @@ class Places
      */
     public function standingAnywhere(): array
     {
-        $held = [];
+        $files = $this->held(Mediator::unscoped());
 
-        foreach ($this->holders as $holds) {
-            foreach ($holds() as $file) {
-                $held[] = (int) $file;
-            }
-        }
-
-        return array_values(array_unique($held));
+        return $files->pluck($files->getModel()->getKeyName())
+            ->map(fn (int|string $file): int => (int) $file)
+            ->all();
     }
 
     /**

@@ -53,7 +53,8 @@ return [
         'next' => 'Next file',
         'previous' => 'Previous file',
         'close' => 'Close',
-        'choose_many' => 'Insert into the text',
+        'choose_many' => 'Take the selected',
+        'into_text' => 'Insert into the text',
         'replace' => 'Replace the file',
         'cancel' => 'Cancel',
         'delete' => 'Delete',
@@ -66,6 +67,9 @@ return [
         'choose' => 'Choose from the library',
         'change' => 'Choose another file',
         'clear' => 'Take the file off',
+        'add' => 'Add from the library',
+        'remove' => 'Take this file off',
+        'clear_many' => 'Take every file off',
     ],
 
     'delete' => [

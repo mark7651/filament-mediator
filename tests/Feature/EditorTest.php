@@ -14,6 +14,7 @@ beforeEach(function () {
         $table->unsignedBigInteger('cover_id')->nullable();
         $table->unsignedBigInteger('icon_id')->nullable();
         $table->text('body')->nullable();
+        $table->json('gallery')->nullable();
         $table->softDeletes();
     });
 
@@ -151,4 +152,13 @@ it('writes the size of a picture that arrived in a style back into the attribute
         ->toContain('width="640"')
         ->toContain('height="480"')
         ->not->toContain('style=');
+});
+
+it('says under the wall of the editor that the pictures go into the text', function () {
+    $library = (string) view('mediator::editor-library', ['key' => 'body', 'takes' => ['image/jpeg']])->render();
+
+    // The same wall and the same ticking as a field holding several files, and
+    // the button under it says what this gathering is for.
+    expect($library)->toContain(__('mediator::media.actions.into_text'))
+        ->and($library)->not->toContain(__('mediator::media.actions.choose_many'));
 });

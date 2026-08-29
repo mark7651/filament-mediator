@@ -129,13 +129,27 @@ class Upload
         return ['file', 'mimetypes:'.implode(',', $kinds), self::withinItsCeiling()];
     }
 
+    /**
+     * A file into the library as a record of its own.
+     *
+     * Written to the whole table rather than through the library as the
+     * project shows it, and written past the guard of the model: everything in
+     * the row was said either by the file itself or by the project's own hook,
+     * and a column of the project that the model of the package never heard of
+     * would otherwise be dropped on the way in without a word.
+     */
     public static function store(UploadedFile $file): Media
     {
-        /** @var Media */
-        return Mediator::query()->create([
+        $said = Mediator::fill([
             ...self::put($file),
             'title' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
-        ]);
+        ], $file);
+
+        $taken = Mediator::unscoped()->getModel()->newInstance();
+
+        $taken->forceFill($said)->save();
+
+        return $taken;
     }
 
     /**
@@ -155,7 +169,11 @@ class Upload
         $disk = (string) $file->disk;
         $gone = (string) $file->path;
 
-        $file->update(self::put($new));
+        // The project is asked about the new picture as it is about a new file,
+        // because what it says of a file is often read off the picture: the
+        // shape of a banner changes with the picture behind it, and a record
+        // still describing the one that has gone describes nothing.
+        $file->forceFill(Mediator::fill(self::put($new), $new))->save();
 
         Storage::disk($disk)->delete($gone);
         app(Thumbnails::class)->forget($disk, $gone);

@@ -74,14 +74,6 @@ class Media extends Model
         'title',
     ];
 
-    /**
-     * @var list<string>
-     */
-    protected $appends = [
-        'url',
-        'pretty_name',
-    ];
-
     public function getTable(): string
     {
         return $this->table ?? (string) config('mediator.table', 'media');
@@ -137,7 +129,7 @@ class Media extends Model
 
                 if ($this->visibility === 'private') {
                     try {
-                        return $storage->temporaryUrl($this->path, now()->addMinutes(5));
+                        return $storage->temporaryUrl($this->path, now()->addMinutes(self::privateFor()));
                     } catch (Throwable) {
                         // The driver hands out no temporary addresses, so the
                         // plain one is the best there is.
@@ -167,6 +159,17 @@ class Media extends Model
         return Attribute::make(
             get: fn (): ?string => app(Thumbnails::class)->url($this, 'large'),
         )->shouldCache();
+    }
+
+    /**
+     * For how many minutes an address to a file the disk does not serve openly
+     * is good.
+     */
+    public static function privateFor(): int
+    {
+        $minutes = (int) config('mediator.private_for', 5);
+
+        return $minutes > 0 ? $minutes : 5;
     }
 
     protected function fullPath(): Attribute

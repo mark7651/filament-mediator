@@ -5,5 +5,5 @@
     knows nothing of the text above it.
 --}}
 <div x-on:media-chosen="$wire.callMountedAction($event.detail)">
-    @livewire(\Mediator\Livewire\MediaLibrary::class, ['picking' => true, 'many' => true, 'takes' => $takes], key('media-editor-'.$key))
+    @livewire(\Mediator\Livewire\MediaLibrary::class, ['picking' => true, 'many' => true, 'intoText' => true, 'takes' => $takes], key('media-editor-'.$key))
 </div>

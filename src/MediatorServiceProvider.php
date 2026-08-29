@@ -29,7 +29,6 @@ class MediatorServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadRoutesFrom(__DIR__.'/../routes/mediator.php');
         $this->loadTranslationsFrom(__DIR__.'/../lang', 'mediator');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'mediator');
@@ -42,6 +41,26 @@ class MediatorServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../config/mediator.php' => config_path('mediator.php'),
             ], 'mediator-config');
+
+            // Published rather than run out of the package, because the table
+            // of the library is the project's own: a project that wants a
+            // column, an index or a key of its own in it edits the file it was
+            // given instead of writing a second migration to alter what it has
+            // just raised.
+            //
+            // Handed over under the names the package holds them by, and never
+            // through publishesMigrations(), which stamps the hour of the
+            // publishing on them. The table of a library is pointed at by the
+            // records of the project, so it has to stand before them: a file
+            // dated today lands after every table that already carries a key
+            // to it, and a project that raises its database anew is left with
+            // a key pointing at nothing. A project that wants it later renames
+            // the file itself, which is one deliberate move rather than a trap
+            // sprung on everybody.
+            $this->publishes([
+                __DIR__.'/../database/migrations/0001_01_01_000000_create_mediator_table.php' => database_path('migrations/0001_01_01_000000_create_mediator_table.php'),
+                __DIR__.'/../database/migrations/0001_01_01_000001_create_mediator_texts_table.php' => database_path('migrations/0001_01_01_000001_create_mediator_texts_table.php'),
+            ], 'mediator-migrations');
 
             $this->publishes([
                 __DIR__.'/../lang' => $this->app->langPath('vendor/mediator'),

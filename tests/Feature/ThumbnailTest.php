@@ -95,3 +95,46 @@ it('leaves the address of the file itself as direct as it was', function () {
     expect($file->url)->toBe(Storage::disk('public')->url($file->path))
         ->and($file->url)->not->toContain('/mediator/pictures/');
 });
+
+it('lets an address to a file the disk does not serve openly run out', function () {
+    $file = picture('media/2026/08/pryvatna.png');
+
+    $file->update(['visibility' => 'private']);
+
+    $address = (string) $file->thumbnailUrl;
+
+    // The file itself is served under an address that lasts minutes, and a
+    // picture drawn off it is the same picture: an address to it that never ran
+    // out would outlive the one to the file and hand it to anybody it was ever
+    // pasted to.
+    expect($address)->toContain('expires=');
+
+    $this->get($address)->assertOk();
+
+    $this->travel(Media::privateFor() + 1)->minutes();
+
+    $this->get($address)->assertForbidden();
+});
+
+it('leaves the address of an openly served picture good for as long as the file stands', function () {
+    expect((string) picture()->thumbnailUrl)->not->toContain('expires=');
+});
+
+it('draws the same picture whenever the address to it was made', function () {
+    $file = picture('media/2026/08/pryvatna.png');
+
+    $file->update(['visibility' => 'private']);
+
+    $this->get((string) $file->thumbnailUrl)->assertOk();
+
+    $drawn = File::allFiles(storage_path('framework/testing/thumbnails'));
+
+    $this->travel(1)->minutes();
+
+    // The hour an address runs out at is not one of the measures a picture is
+    // drawn by, so a second address to the same picture is answered with the
+    // one already drawn rather than filling the disk with a copy a minute.
+    $this->get((string) $file->fresh()?->thumbnailUrl)->assertOk();
+
+    expect(File::allFiles(storage_path('framework/testing/thumbnails')))->toHaveCount(count($drawn));
+});

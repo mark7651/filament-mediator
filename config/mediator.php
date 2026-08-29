@@ -108,6 +108,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Files the disk does not serve openly
+    |--------------------------------------------------------------------------
+    |
+    | For how many minutes an address to a file written as private is good. It
+    | holds for the address of the file itself and for the addresses of the
+    | sizes it is drawn to alike, so a thumbnail never outlives the file it was
+    | drawn from.
+    |
+    */
+
+    'private_for' => 5,
+
+    /*
+    |--------------------------------------------------------------------------
     | Ceilings
     |--------------------------------------------------------------------------
     |

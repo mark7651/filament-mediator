@@ -15,6 +15,7 @@ beforeEach(function () {
         $table->unsignedBigInteger('icon_id')->nullable();
         $table->string('title')->nullable();
         $table->string('body')->default('');
+        $table->json('gallery')->nullable();
         $table->softDeletes();
     });
 });

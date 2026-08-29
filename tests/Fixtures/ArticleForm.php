@@ -14,8 +14,9 @@ use Mediator\Filament\Forms\MediaField;
 use Mediator\Filament\Forms\MediaImagePlugin;
 
 /**
- * A form of a project holding two files and a text, which is every place the
- * library is reached from outside its own section.
+ * A form of a project holding one file, a file of a narrowed kind, a run of
+ * files and a text, which is every place the library is reached from outside
+ * its own section.
  */
 class ArticleForm extends Component implements HasActions, HasSchemas
 {
@@ -33,7 +34,7 @@ class ArticleForm extends Component implements HasActions, HasSchemas
     {
         $this->article = $article ?? Article::query()->create();
 
-        $this->form->fill($this->article->only(['cover_id', 'icon_id', 'body']));
+        $this->form->fill($this->article->only(['cover_id', 'icon_id', 'gallery', 'body']));
     }
 
     public function form(Schema $schema): Schema
@@ -42,6 +43,7 @@ class ArticleForm extends Component implements HasActions, HasSchemas
             ->components([
                 MediaField::make('cover_id'),
                 MediaField::make('icon_id')->takes(['image/svg+xml', 'image/png']),
+                MediaField::make('gallery')->multiple(),
                 RichEditor::make('body')
                     ->plugins([MediaImagePlugin::make()])
                     // The tool comes with the plugin, standing it in the
