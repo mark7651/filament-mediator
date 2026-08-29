@@ -80,7 +80,7 @@ class MediaField extends Field
      *
      * The id comes from the browser, so what kind of file it is gets read off
      * the record rather than taken on trust: a field that stands for the sign
-     * of a practice holds a drawing, whatever it was asked to hold.
+     * of a record holds a drawing, whatever it was asked to hold.
      */
     #[ExposedLivewireMethod]
     public function chosen(int|string $id): void

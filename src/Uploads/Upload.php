@@ -28,17 +28,20 @@ use RuntimeException;
 class Upload
 {
     /**
-     * The kinds of file the library holds, and what each of them is called on
-     * disk.
+     * The kinds of file the library holds where the project says nothing, and
+     * what each of them is called on disk.
      *
      * The name a file arrives with says nothing true about it: a picture may be
      * handed over as page.html, and a disk that took that name would serve a
      * script from the domain the panel is signed in to. So the type is read out
      * of the bytes and the extension is written from this list.
      *
+     * A project says its own list in mediator.types; this one stands behind it
+     * for a project whose published config was written before the key existed.
+     *
      * @var array<string, string>
      */
-    public const EXTENSIONS = [
+    private const EXTENSIONS = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
         'image/webp' => 'webp',
@@ -59,22 +62,37 @@ class Upload
     ];
 
     /**
-     * The pictures the library draws again instead of keeping: the two heavy
-     * formats every camera and every screenshot writes.
+     * The kinds the library holds and the extension each is written with, as
+     * the project has them.
      *
-     * Gif is left out because redrawing it would leave an animation standing
-     * still, and webp because it is already what the redrawing would produce.
-     *
-     * @var list<string>
+     * @return array<string, string>
      */
-    private const REDRAWN = ['image/jpeg', 'image/png'];
+    public static function types(): array
+    {
+        $types = config('mediator.types', self::EXTENSIONS);
+
+        return is_array($types) && $types !== [] ? $types : self::EXTENSIONS;
+    }
 
     /**
      * @return list<string>
      */
     public static function takes(): array
     {
-        return array_keys(self::EXTENSIONS);
+        return array_keys(self::types());
+    }
+
+    /**
+     * The kinds the library draws again on the way in instead of keeping as
+     * they arrived.
+     *
+     * @return list<string>
+     */
+    private static function redraws(): array
+    {
+        $redraw = config('mediator.pictures.redraw', ['image/jpeg', 'image/png']);
+
+        return is_array($redraw) ? array_values($redraw) : [];
     }
 
     /**
@@ -170,7 +188,7 @@ class Upload
         $storage = Storage::disk($disk);
 
         $type = (string) $file->getMimeType();
-        $extension = self::EXTENSIONS[$type] ?? null;
+        $extension = self::types()[$type] ?? null;
         $name = (string) Str::uuid();
 
         if ($extension === null) {
@@ -185,7 +203,7 @@ class Upload
 
         if ($picture !== null) {
             $type = 'image/webp';
-            $extension = self::EXTENSIONS[$type];
+            $extension = self::types()['image/webp'] ?? 'webp';
         }
 
         $path = $directory.'/'.$name.'.'.$extension;
@@ -246,7 +264,7 @@ class Upload
      */
     private static function redrawn(string $type, string $path): ?ImageInterface
     {
-        if (! in_array($type, self::REDRAWN, true)) {
+        if (! in_array($type, self::redraws(), true)) {
             return null;
         }
 

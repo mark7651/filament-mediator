@@ -7,8 +7,9 @@ A media library for Filament panels. One plugin registration brings three things
 - a button in the rich editor that puts pictures into a text.
 
 Files are kept in a table of their own and served straight off their disk. Pictures are redrawn on
-the way in (turned upright, brought down to a sane size, written as webp) and drawn again to the size
-they are looked at by Glide, behind signed addresses.
+the way in (turned upright, brought down to a sane size, written as webp) unless the project asks for
+them to be kept as they arrived, and drawn again to the size they are looked at by Glide, behind
+signed addresses.
 
 The package ships Ukrainian and English.
 
@@ -212,10 +213,23 @@ What the config decides:
 | Key | What it is |
 | --- | --- |
 | `model`, `table` | the record of a file and the table it stands on |
+| `texts_table` | the table of the files standing inside texts |
+| `types` | every kind of file the library holds, and the extension each is written with |
+| `step` | how many cards stand on the wall when it opens and are added at a time |
 | `disk`, `directory`, `visibility` | where a new file is written; files are laid out in folders by year and month |
 | `ceilings` | how heavy a file may be, pictures held to a tenth of the rest |
-| `pictures` | the longest side a photograph is brought down to, and the quality it is written with |
+| `pictures` | the longest side a photograph is brought down to, the quality it is written with, and the kinds redrawn on the way in |
 | `thumbnails` | the path the drawn pictures are served under, the token that signs the addresses, the cache folder and the named sizes |
+
+The library takes the kinds named in `types` and no others: the kind is read out of the bytes of the
+file and the extension is written from that list, so a picture handed over as `page.html` cannot end
+up served as a page of the domain the panel is signed in to. A project adds the kinds it needs there
+and takes away the ones it wants kept out.
+
+`pictures.redraw` names the kinds redrawn on the way in. A kind left out of it is written to the disk
+as it arrived, byte for byte, and an empty list is a library that keeps every original: a studio
+handing photographs back to the people they belong to wants exactly that, and pays for it with the
+weight.
 
 A project carrying files over from another library names that library's table in `table` and moves
 nothing.

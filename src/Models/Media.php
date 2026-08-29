@@ -32,10 +32,6 @@ use Throwable;
  * @property string $ext
  * @property string|null $alt
  * @property string|null $title
- * @property string|null $description
- * @property string|null $caption
- * @property array<string, mixed>|null $exif
- * @property array<int, mixed>|null $curations
  * @property-read CarbonInterface $created_at
  * @property-read CarbonInterface $updated_at
  * @property-read string|null $url
@@ -76,10 +72,6 @@ class Media extends Model
         'ext',
         'alt',
         'title',
-        'description',
-        'caption',
-        'exif',
-        'curations',
     ];
 
     /**
@@ -104,8 +96,6 @@ class Media extends Model
             'width' => 'integer',
             'height' => 'integer',
             'size' => 'integer',
-            'exif' => 'array',
-            'curations' => 'array',
         ];
     }
 

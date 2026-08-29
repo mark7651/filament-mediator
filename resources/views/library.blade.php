@@ -429,10 +429,10 @@
     </div>
 
     @if ($canDelete && $open)
-        {{-- The editor deleting a picture is deciding, and «three records» is not
-             something a decision can be made on while «практика: Сімейне право»
-             is. The way to each record stands there too, so the picture can be
-             changed where it stands before it leaves the disk. --}}
+        {{-- The editor deleting a picture is deciding, and «three records» is
+             not something a decision can be made on while the names of those
+             three records are. The way to each of them stands there too, so the
+             picture can be changed where it stands before it leaves the disk. --}}
         <x-filament::modal id="media-delete" icon="heroicon-o-trash" icon-color="danger" alignment="center" width="lg">
             <x-slot name="heading">{{ __('mediator::media.delete.heading') }}</x-slot>
 

@@ -5,7 +5,10 @@ use Illuminate\Support\Facades\Schema;
 
 it('raises the table of the library', function () {
     expect(Schema::hasTable('media'))->toBeTrue()
-        ->and(Schema::hasColumns('media', ['disk', 'directory', 'visibility', 'name', 'path', 'width', 'height', 'size', 'type', 'ext', 'alt', 'title', 'description', 'caption', 'exif', 'curations']))->toBeTrue();
+        ->and(Schema::hasColumns('media', ['disk', 'directory', 'visibility', 'name', 'path', 'width', 'height', 'size', 'type', 'ext', 'alt', 'title']))->toBeTrue()
+        // The library says two things about a file, its name and what it shows
+        // for those who cannot see it, and holds no column it never writes.
+        ->and(Schema::hasColumn('media', 'curations'))->toBeFalse();
 });
 
 it('leaves a table that is already there alone', function () {

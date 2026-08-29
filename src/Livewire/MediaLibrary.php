@@ -35,7 +35,7 @@ class MediaLibrary extends Component
 
     /**
      * How many cards are added to the wall at a time, and how many stand on it
-     * when it opens.
+     * when it opens, where the project says nothing.
      */
     private const STEP = 24;
 
@@ -52,7 +52,7 @@ class MediaLibrary extends Component
      */
     public bool $unused = false;
 
-    public int $shown = self::STEP;
+    public int $shown = 0;
 
     public ?int $openId = null;
 
@@ -107,6 +107,30 @@ class MediaLibrary extends Component
 
     public ?string $alt = null;
 
+    /**
+     * Asked of the config rather than held as a number of the class, so a
+     * project whose files are heavy on the eye can put fewer of them on the
+     * wall at once.
+     */
+    private function step(): int
+    {
+        $step = (int) config('mediator.step', self::STEP);
+
+        return $step > 0 ? $step : self::STEP;
+    }
+
+    /**
+     * The wall opens on one step of cards. Filled here rather than where the
+     * property stands, because the number is the project's to say and a
+     * property cannot ask.
+     */
+    public function boot(): void
+    {
+        if ($this->shown < 1) {
+            $this->shown = $this->step();
+        }
+    }
+
     public function updatedSearch(): void
     {
         $this->reopen();
@@ -130,7 +154,7 @@ class MediaLibrary extends Component
      */
     public function loadMore(): void
     {
-        $this->shown += self::STEP;
+        $this->shown += $this->step();
     }
 
     public function open(int $id): void
@@ -370,7 +394,7 @@ class MediaLibrary extends Component
         return view('mediator::library', [
             'wall' => $wall,
             'left' => $left,
-            'coming' => min(self::STEP, $left),
+            'coming' => min($this->step(), $left),
             'open' => $this->openId === null ? null : $this->file($this->openId),
             'canDelete' => $canDelete,
             // An empty wall says one of two things, and which of them it says
@@ -412,9 +436,8 @@ class MediaLibrary extends Component
                     ->orWhere('title', 'like', $like)
                     ->orWhere('alt', 'like', $like));
             })
-            // A field that holds the sign of a practice takes an svg or a png
-            // and nothing else, and a wall of files that cannot be chosen is a
-            // wall of dead ends.
+            // A field may take an svg or a png and nothing else, and a wall of
+            // files that cannot be chosen is a wall of dead ends.
             ->when($this->takes !== [], fn (Builder $query): Builder => $query->whereIn('type', $this->takes))
             // Asked with filled() rather than against null: the option that
             // stands for the whole library carries an empty value, and Livewire
@@ -434,7 +457,7 @@ class MediaLibrary extends Component
     private function ofType(Builder $query): Builder
     {
         // A document is everything that is not a picture, a film or a sound:
-        // the list of what a lawyer may hand over is open, while those three
+        // the list of what a project may hand over is open, while those three
         // are not.
         return match ($this->type) {
             'image', 'video', 'audio' => $query->where('type', 'like', $this->type.'/%'),
@@ -486,7 +509,7 @@ class MediaLibrary extends Component
      */
     private function reopen(): void
     {
-        $this->shown = self::STEP;
+        $this->shown = $this->step();
         $this->close();
 
         // While the ticks stand for what goes into the text they survive the

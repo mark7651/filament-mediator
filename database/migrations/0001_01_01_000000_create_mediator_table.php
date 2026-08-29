@@ -36,10 +36,6 @@ return new class extends Migration
             $table->string('ext');
             $table->string('alt')->nullable();
             $table->string('title')->nullable();
-            $table->text('description')->nullable();
-            $table->text('caption')->nullable();
-            $table->text('exif')->nullable();
-            $table->longText('curations')->nullable();
 
             $table->timestamps();
         });

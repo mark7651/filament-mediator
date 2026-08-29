@@ -43,6 +43,54 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | The kinds of file the library holds
+    |--------------------------------------------------------------------------
+    |
+    | Every kind the library takes, and the extension a file of that kind is
+    | written with. The name a file arrives with says nothing true about it: a
+    | picture may be handed over as page.html, and a disk that took that name
+    | would serve a script from the domain the panel is signed in to. So the
+    | kind is read out of the bytes and the extension is written from here.
+    |
+    | A project that needs a kind the list does not hold adds it here, and one
+    | that wants a kind kept out takes it away.
+    |
+    */
+
+    'types' => [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'image/gif' => 'gif',
+        'image/svg+xml' => 'svg',
+        'video/mp4' => 'mp4',
+        'video/quicktime' => 'mov',
+        'video/webm' => 'webm',
+        'audio/mpeg' => 'mp3',
+        'audio/mp4' => 'm4a',
+        'audio/wav' => 'wav',
+        'audio/ogg' => 'ogg',
+        'application/pdf' => 'pdf',
+        'application/msword' => 'doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+        'application/vnd.ms-excel' => 'xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | The wall
+    |--------------------------------------------------------------------------
+    |
+    | How many cards stand on the wall when it opens and how many are added at
+    | a time as it is scrolled.
+    |
+    */
+
+    'step' => 24,
+
+    /*
+    |--------------------------------------------------------------------------
     | Where files are written
     |--------------------------------------------------------------------------
     |
@@ -82,16 +130,33 @@ return [
     | Pictures on the way in
     |--------------------------------------------------------------------------
     |
-    | A photograph is not kept as the camera wrote it: jpeg and png are turned
-    | the right way up, brought down to the longest side named here and written
-    | as webp. Above that side nothing on a page gains anything, and a phone
-    | pays for every pixel it is sent.
+    | A photograph of a kind named in redraw is not kept as the camera wrote it:
+    | it is turned the right way up, brought down to the longest side named here
+    | and written as webp. Above that side nothing on a page gains anything, and
+    | a phone pays for every pixel it is sent.
     |
     */
 
     'pictures' => [
+
         'longest_side' => 2560,
+
         'quality' => 82,
+
+        /*
+         | The kinds redrawn on the way in. A kind left out of this list is
+         | written to the disk as it arrived, byte for byte, and an empty list
+         | is a library that keeps every original: a studio handing photographs
+         | back to the people they belong to wants exactly that, and pays for it
+         | with the weight.
+         |
+         | Gif is left out because redrawing it would leave an animation
+         | standing still, and webp because it is already what the redrawing
+         | produces.
+         */
+
+        'redraw' => ['image/jpeg', 'image/png'],
+
     ],
 
     /*

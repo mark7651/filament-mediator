@@ -70,8 +70,9 @@ class Places
      * A record that holds a file in a column of its own.
      *
      * A record with two columns for files is registered twice, once per
-     * column: a practice keeps the cover of its page apart from the icon it is
-     * listed by, and either of them alone is reason enough to warn.
+     * column: a record often keeps the picture of its own page apart from the
+     * one it is listed by elsewhere, and either of them alone is reason enough
+     * to warn.
      *
      * @param  class-string<Model>  $model
      */
@@ -293,7 +294,8 @@ class Places
      * record is, the name it carries and the way to it.
      *
      * An editor about to delete a picture is deciding, and «three records» is
-     * not something a decision can be made on while «Practice: Family law» is.
+     * not something a decision can be made on while the names of those three
+     * records are.
      *
      * @return list<array{kind: string, label: string, url: string|null}>
      */
