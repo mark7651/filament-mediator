@@ -360,6 +360,12 @@
 
     .media-details {
         display: grid;
+        /* The one column is told it may be narrower than what stands in it. An
+           auto column is never narrower than the widest thing inside, and the
+           name of a file is one long word, so a file called
+           blokuvannia-podatkovykh-nakladnykh pushed the panel wider than the
+           column it stands in and everything inside it spilled over the edge. */
+        grid-template-columns: minmax(0, 1fr);
         gap: 0.75rem;
         padding: 0.875rem;
         border-radius: 0.75rem;

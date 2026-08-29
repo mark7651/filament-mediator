@@ -640,3 +640,13 @@ it('tells a library nothing was put into from one the editor has narrowed to not
         ->assertSee(__('mediator::media.nothing'))
         ->assertDontSee(__('mediator::media.empty'));
 });
+
+it('holds the panel of details to the column it stands in, whatever is written inside it', function () {
+    // The name of a file is one long word and cannot be broken, so the panel
+    // has to be told that its column may be narrower than the word: an auto
+    // column is never narrower than the widest thing inside it, and everything
+    // in the panel then spills over its edge.
+    $styles = view('mediator::styles')->render();
+
+    expect($styles)->toContain('grid-template-columns: minmax(0, 1fr)');
+});
