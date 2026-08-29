@@ -133,6 +133,38 @@ app(Places::class)->counted(
 A place that says nothing here is left out of that answer, and the files standing in it are counted
 among nobody's. The register knows what the project told it and nothing else.
 
+### A file standing in a text
+
+A picture put into a text by the editor is held there by its address, so no column leads to it and
+nothing counts it. A project says which of its texts can hold files, and the library takes care of
+the rest:
+
+```php
+app(Places::class)
+    ->standsInText(Article::class, 'body')
+    ->standsInText(PageTranslation::class, ['content', 'aside'], stands: fn (PageTranslation $telling): Page => $telling->page);
+```
+
+The library hangs a reading on the model itself: at the moment the record is saved the text is read
+and the files found in it are written down in a table of pairs, `mediator.texts_table`. Counting a
+place then costs a key of an index however far the texts of the project have grown, and reading every
+text of the project to answer one question never happens.
+
+A text lives in the telling of a page in one language while the record a person opens is the page
+itself, so `stands` says which record is named and counted; without it the record that was saved is
+the record that is named. A page told in two languages is one place and not two.
+
+Both the picture and the link are read, because a text holds a file either way, and a file is matched
+by the name the library gave it. A record thrown into the trash holds the pictures of its text as
+firmly as one standing on the site; a record gone for good lets go of them.
+
+A text changed past the model, by an import or by a statement written by hand, leaves the table
+saying what was true before. The way back is:
+
+```bash
+php artisan mediator:relink
+```
+
 The register is a singleton and is filled from the `boot()` of a provider of the project.
 
 ## A model of your own

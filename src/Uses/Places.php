@@ -7,6 +7,7 @@ use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection as SupportCollection;
 use Mediator\Models\Media;
 
@@ -52,6 +53,20 @@ class Places
     private array $holders = [];
 
     /**
+     * The texts of the project that can hold files, by the model they are
+     * written in.
+     *
+     * @var array<class-string<Model>, array{columns: list<string>, stands: Closure(Model): Model}>
+     */
+    private array $texts = [];
+
+    /**
+     * Whether the table of files standing in texts is already written down as
+     * a place of its own.
+     */
+    private bool $reading = false;
+
+    /**
      * A record that holds a file in a column of its own.
      *
      * A record with two columns for files is registered twice, once per
@@ -85,6 +100,122 @@ class Places
         };
 
         return $this->counted(fn (Media $file): int => $records($file)->count());
+    }
+
+    /**
+     * A text of the project that can hold files inside it, and the columns it
+     * is written in.
+     *
+     * A picture put into a text is held by its address, so there is no column
+     * to follow: the text is read when the record is saved and the files found
+     * in it are written down. The library hangs that reading on the model
+     * itself, so a project has nothing to remember at the moment of saving.
+     *
+     * The text of a page told in two languages lives in two records while the
+     * place a person opens is the one page, so a project says which record
+     * stands for the text: `stands` is asked for it, and without it the record
+     * that was saved is the record that is named.
+     *
+     * @param  class-string<Model>  $model
+     * @param  list<string>|string  $columns
+     * @param  Closure(Model): Model|null  $stands
+     */
+    public function standsInText(string $model, array|string $columns, ?Closure $stands = null): static
+    {
+        $columns = (array) $columns;
+        $stands ??= fn (Model $record): Model => $record;
+
+        $this->texts[$model] = ['columns' => $columns, 'stands' => $stands];
+
+        $model::saved(function (Model $record) use ($columns, $stands): void {
+            Texts::hold($record, $columns, $stands($record));
+        });
+
+        $model::deleted(function (Model $record): void {
+            // A record waiting in the trash holds the pictures of its text as
+            // firmly as one standing on the site, because it is taken out of
+            // the trash whole.
+            if (method_exists($record, 'isForceDeleting') && ! $record->isForceDeleting()) {
+                return;
+            }
+
+            Texts::forget($record);
+        });
+
+        return $this->readingTheTexts();
+    }
+
+    /**
+     * The texts written down here, for the command that reads them anew.
+     *
+     * @return array<class-string<Model>, array{columns: list<string>, stands: Closure(Model): Model}>
+     */
+    public function texts(): array
+    {
+        return $this->texts;
+    }
+
+    /**
+     * The table of files standing in texts, asked the three questions every
+     * place is asked. Put in place once, however many texts are written down:
+     * they all stand in the one table.
+     */
+    private function readingTheTexts(): static
+    {
+        if ($this->reading) {
+            return $this;
+        }
+
+        $this->reading = true;
+
+        return $this->counted(
+            fn (Media $file): int => count($this->holders($file)),
+            fn (Media $file): array => $this->records($file),
+            anywhere: fn (): array => Texts::query()->distinct()->pluck('media_id')->all(),
+        );
+    }
+
+    /**
+     * The records a file stands in the text of, each of them once however many
+     * texts of that record hold it.
+     *
+     * @return list<array{holder_type: string, holder_id: int}>
+     */
+    private function holders(Media $file): array
+    {
+        return Texts::query()
+            ->where('media_id', $file->getKey())
+            ->select('holder_type', 'holder_id')
+            ->distinct()
+            ->get()
+            ->map(fn (object $held): array => [
+                'holder_type' => (string) $held->holder_type,
+                'holder_id' => (int) $held->holder_id,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return list<Model>
+     */
+    private function records(Media $file): array
+    {
+        $records = [];
+
+        foreach (collect($this->holders($file))->groupBy('holder_type') as $type => $held) {
+            /** @var class-string<Model>|null $model */
+            $model = Relation::getMorphedModel((string) $type) ?? (class_exists((string) $type) ? (string) $type : null);
+
+            if ($model === null) {
+                continue;
+            }
+
+            foreach ($model::query()->whereKey($held->pluck('holder_id')->all())->get() as $record) {
+                $records[] = $record;
+            }
+        }
+
+        return $records;
     }
 
     /**

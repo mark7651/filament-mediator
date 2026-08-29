@@ -25,6 +25,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Files standing in texts
+    |--------------------------------------------------------------------------
+    |
+    | A picture put into a text is held there by its address and not by a
+    | column, so it is written down as it is put in: the table named here keeps
+    | one row per file per record whose text holds it, and the library counts
+    | the places of a file by reading it instead of by reading every text of
+    | the project.
+    |
+    | The table stands empty until a project says which of its texts can hold
+    | files; see standsInText() of the register.
+    |
+    */
+
+    'texts_table' => 'media_in_texts',
+
+    /*
+    |--------------------------------------------------------------------------
     | Where files are written
     |--------------------------------------------------------------------------
     |

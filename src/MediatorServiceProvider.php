@@ -5,6 +5,7 @@ namespace Mediator;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\ImageExtension;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Mediator\Console\Relink;
 use Mediator\Filament\Forms\PictureExtension;
 use Mediator\Policies\MediaPolicy;
 use Mediator\Uses\Places;
@@ -36,6 +37,8 @@ class MediatorServiceProvider extends ServiceProvider
         $this->app->booted(fn () => $this->defaultPolicy());
 
         if ($this->app->runningInConsole()) {
+            $this->commands([Relink::class]);
+
             $this->publishes([
                 __DIR__.'/../config/mediator.php' => config_path('mediator.php'),
             ], 'mediator-config');
