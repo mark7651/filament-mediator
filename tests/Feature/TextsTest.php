@@ -176,3 +176,17 @@ it('says so instead of doing nothing quietly where no text is written down', fun
         ->expectsOutputToContain('No text of this project is written down')
         ->assertSuccessful();
 });
+
+it('lets go of the holdings of a file that is deleted', function () {
+    $file = fileInText();
+
+    app(Places::class)->standsInText(Article::class, 'body');
+
+    Article::query()->create(['body' => textHolding($file)]);
+
+    expect(Texts::query()->count())->toBe(1);
+
+    $file->delete();
+
+    expect(Texts::query()->count())->toBe(0);
+});
